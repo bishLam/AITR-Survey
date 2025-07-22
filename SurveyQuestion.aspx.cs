@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Web;
+using System.Web.Caching;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -13,25 +14,28 @@ namespace AITR_Survey
     public partial class SurveyQuestion : System.Web.UI.Page
     {
         private Int32 currentQuestionID;
-        private Int32 nextQuestionID;
-        private String CurrentPlaceholderType = "";
+        private String CurrentPlaceholderType;
         protected void Page_Load(object sender, EventArgs e)
         {
-            currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
 
-            if (currentQuestionID > 0) //postback is false only when the page is loaded for the first time.
+            if (!IsPostBack) //this is the first time the page is loaded
             {
-                //LoadNextQuestion();
-                Question question = GetQuestionFromQuestionID(currentQuestionID);
-
-                //now store the current value in the session and prompt them with the next question
-                SetQuestionTextInAFormat(question);
-                var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
-                SetUpListOfOptions(listOfOptions, question.QuestionType);
+                LoadFirstQuestion();
+                previousButton.Visible = false; //hide the previous button initially
             }
             else
             {
-                LoadFirstQuestion();
+                currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+
+                if (currentQuestionID > 0) //postback is false only when the page is loaded for the first time.
+                {
+                    //////LoadNextQuestion();
+                    Question question = GetQuestionFromQuestionID(currentQuestionID);
+                    //now store the current value in the session and prompt them with the next question
+                    SetQuestionTextInAFormat(question);
+                    var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
+                    SetUpListOfOptions(listOfOptions, question);
+                }
             }
         }
 
@@ -40,8 +44,10 @@ namespace AITR_Survey
             //1. Get the selected option
             if (answerPlaceholder.Controls.Count > 0) //meaning there is at least one control
             {
-                if (CurrentPlaceholderType.Equals("RadioButton"))
+                
+                if (CurrentPlaceholderType.Equals(AppConstants.PlaceholderTypeRadioButton))
                 {
+                    //if the current placeholder type is radio button, then we need to find the selected option
                     for (int i = 0; i < answerPlaceholder.Controls.Count; i++)
                     {
                         if (answerPlaceholder.Controls[i] is RadioButton rb && rb.Checked)
@@ -49,21 +55,33 @@ namespace AITR_Survey
                             //now store the data into the session for later
                             Int32 selectedOptionID = Int32.Parse(rb.ID);
                             //System.Diagnostics.Debug.WriteLine(selectedOptionID);
-                            nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);    
+                            int nextQuestionID;
+                            nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
+                            HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+
+                            //LoadNextQuestion();
+
+                            Question question = GetQuestionFromQuestionID(nextQuestionID);
+
+                            //now store the current value in the session and prompt them with the next question
+                            previousButton.Visible = true; //make the previous button visible
+                            currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
+
+                            SetQuestionTextInAFormat(question);
+                            var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
+                            SetUpListOfOptions(listOfOptions, question);
+                            return;
                         }
                     }
                 }
             }
 
-            HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
-
-            Response.Redirect("~/SurveyQuestion.aspx");
         }
 
         protected Int32 FindNextQuestionFromOptionID(int optionID)
         {
             string _connectionString = GetConnectionString();
-
+            int nextQuestionID = 0; //default value if not found
             SqlConnection conn = new SqlConnection();
             conn.ConnectionString = _connectionString;
             conn.Open();
@@ -76,8 +94,7 @@ namespace AITR_Survey
             reader.Read();
             nextQuestionID = Int32.Parse(reader["NextQuestionID"].ToString());
             conn.Close();
-            return nextQuestionID;
-            
+            return nextQuestionID;   
         }
 
         protected string GetConnectionString()
@@ -89,7 +106,7 @@ namespace AITR_Survey
             }
             else
             {
-                return ""; // Use the different connection string here
+                return ""; //Use the different connection string here
             }
         }
 
@@ -112,7 +129,17 @@ namespace AITR_Survey
                 question.IsFirstQuestion = reader["isFirstQuestion"].ToString();
                 question.QuestionType = reader["QuestionType"].ToString();
                 question.HasBranch = reader["HasBranch"].ToString();
-                question.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
+                var MaxAnswerSelection = reader["MaxAnswerSelection"];
+                //WRONG
+                if (DBNull.Value == null)
+                {
+                    question.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
+                }
+                else
+                {
+                    question.MaxSelection = 0; //default value if not set
+                }
+                
             }
             conn.Close();
             return question;
@@ -145,14 +172,16 @@ namespace AITR_Survey
             return listOfOptions;
         }
 
-        protected void SetUpListOfOptions(List<Option> options, String questionType)
+        protected void SetUpListOfOptions(List<Option> options, Question question)
         {
-            if(questionType == "Single Choice")
+            string questionType = question.QuestionType;
+            answerPlaceholder.Controls.Clear(); //clear existing controls
+            if (questionType == AppConstants.QuestionTypeSingleChoice)
             {
+                //Response.Write("This is a Single choice question.");
                 //populate the placeholder with radio button options
 
-                //get the placeholder first and clear the existing ones
-                answerPlaceholder.Controls.Clear();
+                //get the placeholder first and clear the existing ones              
                 foreach(Option option in options)
                 {
                     RadioButton radioButton = new RadioButton();
@@ -161,9 +190,26 @@ namespace AITR_Survey
                     radioButton.Text = option.OptionText;
                     CurrentPlaceholderType = "RadioButton";
                     answerPlaceholder.Controls.Add(radioButton);
-
                 }
 
+
+            }
+            else if (questionType.Equals(AppConstants.QuestionTypeMultipleChoice))
+            {
+                //Response.Write("This is a multiple choice question.");
+                
+            }
+
+            else if (questionType.Equals(AppConstants.QuestionTypeTextInput))
+            {          
+                currentQuestionID = Int32.Parse(question.NextQuestionForTextInput);
+                //add a text box to the placeholder
+                CurrentPlaceholderType = "TextBox";
+                TextBox textBox = new TextBox();
+                textBox.ID = "TextBox1";
+                textBox.TextMode = TextBoxMode.MultiLine;
+
+                answerPlaceholder.Controls.Add(textBox);
 
             }
         }
@@ -198,54 +244,16 @@ namespace AITR_Survey
                 firstQuestion.HasBranch = reader["HasBranch"].ToString();
                 firstQuestion.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
             }
+            currentQuestionID = firstQuestion.QuestionID; //set the current question ID to the first question ID
+            HttpContext.Current.Session["currentQuestionID"] = currentQuestionID.ToString(); //store the current question ID in the session
             reader.Close();
             //at this point we would have the first question. Now lets take the options
-            SqlCommand optionsCommand = new SqlCommand("SELECT * FROM MultipleChoiceOption WHERE QuestionID =" + firstQuestion.QuestionID, conn);
-            SqlDataReader optionsReader = optionsCommand.ExecuteReader(); //execute the command
-            List<Option> listOfOptions = new List<Option>();
-            while (optionsReader.Read())
-            {
-                Option option = new Option();
-                option.MultipleChoiceOptionID = Int32.Parse(optionsReader["MultipleChoiceOptionID"].ToString());
-                option.QuestionID = Int32.Parse(optionsReader["QuestionID"].ToString());
-                option.NextQuestionID = Int32.Parse(optionsReader["NextQuestionID"].ToString());
-                option.OptionText = optionsReader["OptionText"].ToString();
-                listOfOptions.Add(option);
-            }
+            List<Option> listOfOptions = GetAllOptionsFromQuestionID(firstQuestion.QuestionID);
             conn.Close();
             //Now we have the question and options, lets display them
-            QuestionLabel.Text = "(Question " + firstQuestion.QuestionID + ")  " + firstQuestion.QuestionText.ToString(); //display the question text
-            currentQuestionID = firstQuestion.QuestionID;
-
-            String questionType = firstQuestion.QuestionType;
-            if (questionType.Equals("Single Choice"))
-            {
-                //Response.Write("This is a single choice question.");
-                //display the options
-
-                foreach (Option option in listOfOptions)
-                {
-                    RadioButton radioButton = new RadioButton();
-                    radioButton.ID = option.MultipleChoiceOptionID.ToString();
-                    radioButton.GroupName = "radioOptions"; //group the radio buttons
-                    radioButton.Text = option.OptionText.ToString();
-                    CurrentPlaceholderType = "RadioButton"; //set the current placeholder type
-                    answerPlaceholder.Controls.Add(radioButton); //add the radio button to the placeholder
-                }
-            }
-            else if (questionType.Equals("Multiple Choice"))
-            {
-                Response.Write("This is a multiple choice question.");
-
-            }
-
-            else if (questionType.Equals("TextInput"))
-            {
-                Response.Write("This is a Text Input question.");
-                nextQuestionID = Int32.Parse(firstQuestion.NextQuestionForTextInput);
-
-                //add a text box to the placeholder
-            }
+            SetQuestionTextInAFormat(firstQuestion); //display the question text
+            SetUpListOfOptions(listOfOptions, firstQuestion);
+            
         }
     }
 }
