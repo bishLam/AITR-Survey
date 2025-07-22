@@ -12,25 +12,27 @@ namespace AITR_Survey
 {
     public partial class SurveyQuestion : System.Web.UI.Page
     {
-        Int32 currentQuestionID;
-        Int32 nextQuestionID;
-        String CurrentPlaceholderType = "";
+        private Int32 currentQuestionID;
+        private Int32 nextQuestionID;
+        private String CurrentPlaceholderType = "";
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (!IsPostBack) //postback is false only when the page is loaded for the first time.
-            {
-                LoadFirstQuestion();
-            }
-            else
+            currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+
+            if (currentQuestionID > 0) //postback is false only when the page is loaded for the first time.
             {
                 //LoadNextQuestion();
-                Question question = GetQuestionFromQuestionID(nextQuestionID);
+                Question question = GetQuestionFromQuestionID(currentQuestionID);
+
                 //now store the current value in the session and prompt them with the next question
                 SetQuestionTextInAFormat(question);
                 var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
                 SetUpListOfOptions(listOfOptions, question.QuestionType);
             }
-            
+            else
+            {
+                LoadFirstQuestion();
+            }
         }
 
         protected void nextButton_Click(object sender, EventArgs e)
@@ -52,6 +54,10 @@ namespace AITR_Survey
                     }
                 }
             }
+
+            HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+
+            Response.Redirect("~/SurveyQuestion.aspx");
         }
 
         protected Int32 FindNextQuestionFromOptionID(int optionID)

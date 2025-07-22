@@ -15,7 +15,7 @@
         <p>
             &nbsp;</p>
         <p>
-            <asp:Button ID="GetStartedButton" runat="server" Height="122px" Text="Get Started" Width="442px" />
+            <asp:Button ID="GetStartedButton" runat="server" Height="122px" Text="Get Started" Width="442px" OnClick="GetStartedButton_Click" />
         </p>
         <p>
             &nbsp;</p>

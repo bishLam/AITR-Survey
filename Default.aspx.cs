@@ -13,5 +13,12 @@ namespace AITR_Survey
         {
 
         }
+
+        protected void GetStartedButton_Click(object sender, EventArgs e)
+        {
+            HttpContext.Current.Session["currentQuestionID"] = "0";
+
+            Response.Redirect("~/SurveyQuestion.aspx");
+        }
     }
 }
