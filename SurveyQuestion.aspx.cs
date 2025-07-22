@@ -14,6 +14,7 @@ namespace AITR_Survey
     public partial class SurveyQuestion : System.Web.UI.Page
     {
         private Int32 currentQuestionID;
+        private int ij;
         private String CurrentPlaceholderType;
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -27,14 +28,19 @@ namespace AITR_Survey
             {
                 currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
 
-                if (currentQuestionID > 0) //postback is false only when the page is loaded for the first time.
+                if (currentQuestionID > 0)  
                 {
-                    //////LoadNextQuestion();
-                    Question question = GetQuestionFromQuestionID(currentQuestionID);
-                    //now store the current value in the session and prompt them with the next question
-                    SetQuestionTextInAFormat(question);
-                    var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
-                    SetUpListOfOptions(listOfOptions, question);
+                    //LoadNextQuestion();
+                        Question question = GetQuestionFromQuestionID(currentQuestionID);
+                        //now store the current value in the session and prompt them with the next question
+                        SetQuestionTextInAFormat(question);
+                        var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
+                        SetUpListOfOptions(listOfOptions, question);
+                    
+                }
+                else
+                {
+                    
                 }
             }
         }
@@ -58,24 +64,39 @@ namespace AITR_Survey
                             int nextQuestionID;
                             nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
                             HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
-
-                            //LoadNextQuestion();
-
-                            Question question = GetQuestionFromQuestionID(nextQuestionID);
-
-                            //now store the current value in the session and prompt them with the next question
-                            previousButton.Visible = true; //make the previous button visible
-                            currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
-
-                            SetQuestionTextInAFormat(question);
-                            var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
-                            SetUpListOfOptions(listOfOptions, question);
+                            LoadNextQuestion(nextQuestionID);
                             return;
                         }
                     }
                 }
+                else if (CurrentPlaceholderType.Equals(AppConstants.PlaceholderTypeTextBox))
+                {
+                    // if the current placeholder is a text box, we need to get the value of text box
+                    TextBox textbox = FindControl("TextBox1") as TextBox;
+                    string answer = textbox.Text;
+
+                    //now display the next question
+                    //since we have already assigned the currentQuestionID when we initialise the text box, this is safe to do use it here   
+                    currentQuestionID = ij;
+                    LoadNextQuestion(currentQuestionID);
+                    return;
+                }
             }
 
+        }
+
+        protected void LoadNextQuestion(Int32 nextQuestionID)
+        {
+
+            Question question = GetQuestionFromQuestionID(nextQuestionID);
+
+            //now store the current value in the session and prompt them with the next question
+            previousButton.Visible = true; //make the previous button visible
+            currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
+
+            SetQuestionTextInAFormat(question);
+            var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
+            SetUpListOfOptions(listOfOptions, question);
         }
 
         protected Int32 FindNextQuestionFromOptionID(int optionID)
@@ -129,7 +150,7 @@ namespace AITR_Survey
                 question.IsFirstQuestion = reader["isFirstQuestion"].ToString();
                 question.QuestionType = reader["QuestionType"].ToString();
                 question.HasBranch = reader["HasBranch"].ToString();
-                var MaxAnswerSelection = reader["MaxAnswerSelection"];
+                var maxAnswerSelection = reader["MaxAnswerSelection"];
                 //WRONG
                 if (DBNull.Value == null)
                 {
@@ -188,8 +209,9 @@ namespace AITR_Survey
                     radioButton.ID = option.MultipleChoiceOptionID.ToString();
                     radioButton.GroupName = "options";
                     radioButton.Text = option.OptionText;
-                    CurrentPlaceholderType = "RadioButton";
+                    CurrentPlaceholderType = AppConstants.PlaceholderTypeRadioButton;
                     answerPlaceholder.Controls.Add(radioButton);
+                    answerPlaceholder.Controls.Add(new LiteralControl("<br />")); //add a line break after each radio button
                 }
 
 
@@ -202,16 +224,20 @@ namespace AITR_Survey
 
             else if (questionType.Equals(AppConstants.QuestionTypeTextInput))
             {          
-                currentQuestionID = Int32.Parse(question.NextQuestionForTextInput);
+                
                 //add a text box to the placeholder
-                CurrentPlaceholderType = "TextBox";
+                CurrentPlaceholderType = AppConstants.PlaceholderTypeTextBox;
                 TextBox textBox = new TextBox();
-                textBox.ID = "TextBox1";
-                textBox.TextMode = TextBoxMode.MultiLine;
-
+                textBox.ID = "TextBox1";   
+                textBox.Text = currentQuestionID.ToString();
+                //HttpContext.Current.Session["currentQuestionID"] = currentQuestionID.ToString();
+                //textBox.TextMode = TextBoxMode.MultiLine;
+                ij = Int32.Parse(question.NextQuestionForTextInput);
                 answerPlaceholder.Controls.Add(textBox);
 
             }
+
+            answerPlaceholder.Controls.Add(new LiteralControl("<br /> <br />"));
         }
 
         protected void LoadFirstQuestion()
