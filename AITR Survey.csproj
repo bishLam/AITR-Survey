@@ -67,45 +67,72 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Default.aspx" />
-    <Content Include="SurveyQuestion.aspx" />
-    <Content Include="Web.config" />
-    <Content Include="StaffLogin.aspx" />
+    <Content Include="DefaultPage\Default.aspx" />
+    <Content Include="DefaultPage\Default.css" />
+    <Content Include="RespondentRegister\RespondentRegister.css" />
+    <Content Include="RespondentRegister\RespondentRegister.aspx" />
+    <Content Include="StaffLogin\StaffLogin.css" />
+    <Content Include="StaffDashboard\StaffDashboard.aspx" />
+    <Content Include="StaffDashboard\StaffDashboard.css" />
+    <Content Include="SurveyApp\SurveyQuestion.aspx" />
+    <Content Include="Utils\Web.config" />
+    <Content Include="StaffLogin\StaffLogin.aspx" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AppConstants.cs" />
-    <Compile Include="Default.aspx.cs">
+    <Compile Include="Class\AppConstants.cs" />
+    <Compile Include="DefaultPage\Default.aspx.cs">
       <DependentUpon>Default.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="Default.aspx.designer.cs">
+    <Compile Include="DefaultPage\Default.aspx.designer.cs">
       <DependentUpon>Default.aspx</DependentUpon>
     </Compile>
-    <Compile Include="Option.cs" />
+    <Compile Include="Class\Option.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Question.cs" />
-    <Compile Include="StaffLogin.aspx.cs">
+    <Compile Include="Class\Question.cs" />
+    <Compile Include="RespondentRegister\RespondentRegister.aspx.cs">
+      <DependentUpon>RespondentRegister.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="RespondentRegister\RespondentRegister.aspx.designer.cs">
+      <DependentUpon>RespondentRegister.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="StaffLogin\StaffLogin.aspx.cs">
       <DependentUpon>StaffLogin.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="StaffLogin.aspx.designer.cs">
+    <Compile Include="StaffLogin\StaffLogin.aspx.designer.cs">
       <DependentUpon>StaffLogin.aspx</DependentUpon>
     </Compile>
-    <Compile Include="SurveyQuestion.aspx.cs">
+    <Compile Include="StaffDashboard\StaffDashboard.aspx.cs">
+      <DependentUpon>StaffDashboard.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="StaffDashboard\StaffDashboard.aspx.designer.cs">
+      <DependentUpon>StaffDashboard.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="SurveyApp\SurveyQuestion.aspx.cs">
       <DependentUpon>SurveyQuestion.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="SurveyQuestion.aspx.designer.cs">
+    <Compile Include="SurveyApp\SurveyQuestion.aspx.designer.cs">
       <DependentUpon>SurveyQuestion.aspx</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="Web.Debug.config">
+    <None Include="Utils\packages.config" />
+    <None Include="Utils\Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
-    <None Include="Web.Release.config">
+    <None Include="Utils\Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>
+    </None>
+    <Content Include="web.config" />
+    <None Include="web.Debug.config">
+      <DependentUpon>web.config</DependentUpon>
+    </None>
+    <None Include="web.Release.config">
+      <DependentUpon>web.config</DependentUpon>
     </None>
   </ItemGroup>
   <PropertyGroup>

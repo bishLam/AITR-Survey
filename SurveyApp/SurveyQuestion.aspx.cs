@@ -14,7 +14,7 @@ namespace AITR_Survey
     public partial class SurveyQuestion : System.Web.UI.Page
     {
         private Int32 currentQuestionID;
-        private int ij;
+        private int nextQuestionForTextInput;
         private String CurrentPlaceholderType;
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -77,7 +77,7 @@ namespace AITR_Survey
 
                     //now display the next question
                     //since we have already assigned the currentQuestionID when we initialise the text box, this is safe to do use it here   
-                    currentQuestionID = ij;
+                    currentQuestionID = nextQuestionForTextInput;
                     LoadNextQuestion(currentQuestionID);
                     return;
                 }
@@ -232,7 +232,7 @@ namespace AITR_Survey
                 textBox.Text = currentQuestionID.ToString();
                 //HttpContext.Current.Session["currentQuestionID"] = currentQuestionID.ToString();
                 //textBox.TextMode = TextBoxMode.MultiLine;
-                ij = Int32.Parse(question.NextQuestionForTextInput);
+                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
                 answerPlaceholder.Controls.Add(textBox);
 
             }

@@ -7,18 +7,16 @@ using System.Web.UI.WebControls;
 
 namespace AITR_Survey
 {
-    public partial class Default : System.Web.UI.Page
+    public partial class WebForm1 : System.Web.UI.Page
     {
         protected void Page_Load(object sender, EventArgs e)
         {
 
         }
 
-        protected void GetStartedButton_Click(object sender, EventArgs e)
+        protected void LoginButton_Click(object sender, EventArgs e)
         {
-            HttpContext.Current.Session["currentQuestionID"] = "0";
-
-            Response.Redirect("~/SurveyQuestion.aspx");
+            Response.Redirect("../StaffDashboard/StaffDashboard.aspx");
         }
     }
 }

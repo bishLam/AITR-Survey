@@ -1,0 +1,47 @@
+﻿body {
+    flex: 1;
+    background-color: #d8d9da;
+    margin-left: 10%;
+    margin-right: 10%;
+    text-align:center;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif
+}
+
+.formContainer{
+
+}
+
+.greetingDiv {
+    color: darkcyan;
+
+    font-size: 25px;
+    margin-bottom: 40px;
+}
+
+.inputContainer{
+    display:flex;
+    flex-direction:row;
+    justify-content:center;
+    gap:15px;
+
+}
+
+.inputTextBox{
+    border-block-width: 1px;
+    border-block-color:none;
+    border-radius:10px;
+    padding-left:15px;
+    padding-right:15px;
+    padding-top:7px;
+    padding-bottom:7px;
+}
+
+.submitButton {
+    background-color: #1dd88d;
+    margin-top: 20px;
+    padding-left: 40px;
+    padding-right: 40px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-radius: 10px;
+}
