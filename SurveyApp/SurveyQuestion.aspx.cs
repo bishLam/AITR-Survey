@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Linq;
 using System.Web;
 using System.Web.Caching;
@@ -13,7 +14,6 @@ namespace AITR_Survey
 {
     public partial class SurveyQuestion : System.Web.UI.Page
     {
-        private Int32 currentQuestionID;
         private int nextQuestionForTextInput;
         private String CurrentPlaceholderType;
         protected void Page_Load(object sender, EventArgs e)
@@ -26,7 +26,7 @@ namespace AITR_Survey
             }
             else
             {
-                currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+               Int32 currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
 
                 if (currentQuestionID > 0)  
                 {
@@ -35,8 +35,7 @@ namespace AITR_Survey
                         //now store the current value in the session and prompt them with the next question
                         SetQuestionTextInAFormat(question);
                         var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
-                        SetUpListOfOptions(listOfOptions, question);
-                    
+                        SetUpListOfOptions(listOfOptions, question);                   
                 }
                 else
                 {
@@ -50,7 +49,7 @@ namespace AITR_Survey
             //1. Get the selected option
             if (answerPlaceholder.Controls.Count > 0) //meaning there is at least one control
             {
-                
+
                 if (CurrentPlaceholderType.Equals(AppConstants.PlaceholderTypeRadioButton))
                 {
                     //if the current placeholder type is radio button, then we need to find the selected option
@@ -64,7 +63,7 @@ namespace AITR_Survey
                             int nextQuestionID;
                             nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
                             HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
-                            LoadNextQuestion(nextQuestionID);
+                            DisplayQuestionAndOptions(nextQuestionID);
                             return;
                         }
                     }
@@ -77,22 +76,35 @@ namespace AITR_Survey
 
                     //now display the next question
                     //since we have already assigned the currentQuestionID when we initialise the text box, this is safe to do use it here   
-                    currentQuestionID = nextQuestionForTextInput;
-                    LoadNextQuestion(currentQuestionID);
+                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
+                    DisplayQuestionAndOptions(nextQuestionForTextInput);
                     return;
                 }
+
+                else if (CurrentPlaceholderType.Equals(AppConstants.PlaceholderTypeCheckBox))
+                {
+                    //loop through all the controls in the placeholder
+                    for(int i = 0; i<answerPlaceholder.Controls.Count; i++)
+                    {
+                        if (answerPlaceholder.Controls[i] is CheckBox cb && cb.Checked)
+                        {
+
+                        }
+                    }
+                }
+
             }
 
         }
 
-        protected void LoadNextQuestion(Int32 nextQuestionID)
+        protected void DisplayQuestionAndOptions(Int32 questionID)
         {
 
-            Question question = GetQuestionFromQuestionID(nextQuestionID);
+            Question question = GetQuestionFromQuestionID(questionID);
 
             //now store the current value in the session and prompt them with the next question
             previousButton.Visible = true; //make the previous button visible
-            currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
+            Int32 currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
 
             SetQuestionTextInAFormat(question);
             var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
@@ -172,24 +184,35 @@ namespace AITR_Survey
         }
         protected List<Option> GetAllOptionsFromQuestionID(int questionID)
         {
-            var listOfOptions = new List<Option>();
-            SqlConnection conn = new SqlConnection();
-            conn.ConnectionString = GetConnectionString();
-            conn.Open();
-            //at this point we would have the first question. Now lets take the options
-            SqlCommand optionsCommand = new SqlCommand("SELECT * FROM MultipleChoiceOption WHERE QuestionID =" + questionID, conn);
-            SqlDataReader optionsReader = optionsCommand.ExecuteReader(); //execute the command
 
-            while (optionsReader.Read())
+            var listOfOptions = new List<Option>();
+            try
             {
-                Option option = new Option();
-                option.MultipleChoiceOptionID = Int32.Parse(optionsReader["MultipleChoiceOptionID"].ToString());
-                option.QuestionID = Int32.Parse(optionsReader["QuestionID"].ToString());
-                option.NextQuestionID = Int32.Parse(optionsReader["NextQuestionID"].ToString());
-                option.OptionText = optionsReader["OptionText"].ToString();
-                listOfOptions.Add(option);
+                SqlConnection conn = new SqlConnection();
+                conn.ConnectionString = GetConnectionString();
+                conn.Open();
+                //at this point we would have the first question. Now lets take the options
+                SqlCommand optionsCommand = new SqlCommand("SELECT * FROM MultipleChoiceOption WHERE QuestionID =" + questionID, conn);
+                SqlDataReader optionsReader = optionsCommand.ExecuteReader(); //execute the command
+
+                while (optionsReader.Read())
+                {
+                    Option option = new Option();
+                    option.MultipleChoiceOptionID = Int32.Parse(optionsReader["MultipleChoiceOptionID"].ToString());
+                    option.QuestionID = Int32.Parse(optionsReader["QuestionID"].ToString());
+                    option.NextQuestionID = Int32.Parse(optionsReader["NextQuestionID"].ToString());
+                    option.OptionText = optionsReader["OptionText"].ToString();
+                    listOfOptions.Add(option);
+                }
+                conn.Close();
             }
-            conn.Close();
+            catch(SqlException ex)
+            {
+                Label label = new Label();
+                label.ID = "ErrorMessage";
+                label.Text = "An error occured: " + ex.Message;
+            }
+
             return listOfOptions;
         }
 
@@ -219,6 +242,23 @@ namespace AITR_Survey
             else if (questionType.Equals(AppConstants.QuestionTypeMultipleChoice))
             {
                 //Response.Write("This is a multiple choice question.");
+                CheckBoxList cb = new CheckBoxList();
+                cb.ID = "CheckBox";
+
+                foreach(Option option in options)
+                {
+                    ListItem item = new ListItem();
+                    item.Text = option.OptionText;
+                    item.Value = option.MultipleChoiceOptionID.ToString();
+                    cb.Items.Add(item);
+                    //answerPlaceholder.Controls.Add(new LiteralControl("<br />")); //add a line break after each radio button
+                }
+                CurrentPlaceholderType = AppConstants.PlaceholderTypeCheckBox;
+                answerPlaceholder.Controls.Add(cb);
+                
+                
+
+
                 
             }
 
@@ -228,11 +268,13 @@ namespace AITR_Survey
                 //add a text box to the placeholder
                 CurrentPlaceholderType = AppConstants.PlaceholderTypeTextBox;
                 TextBox textBox = new TextBox();
-                textBox.ID = "TextBox1";   
-                textBox.Text = currentQuestionID.ToString();
+                textBox.ID = "TextBox1";              
+                textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
                 //HttpContext.Current.Session["currentQuestionID"] = currentQuestionID.ToString();
                 //textBox.TextMode = TextBoxMode.MultiLine;
                 nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+
+                textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
 
             }
@@ -270,8 +312,8 @@ namespace AITR_Survey
                 firstQuestion.HasBranch = reader["HasBranch"].ToString();
                 firstQuestion.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
             }
-            currentQuestionID = firstQuestion.QuestionID; //set the current question ID to the first question ID
-            HttpContext.Current.Session["currentQuestionID"] = currentQuestionID.ToString(); //store the current question ID in the session
+            //currentQuestionID = firstQuestion.QuestionID; //set the current question ID to the first question ID
+            HttpContext.Current.Session["currentQuestionID"] = firstQuestion.QuestionID.ToString(); //store the current question ID in the session
             reader.Close();
             //at this point we would have the first question. Now lets take the options
             List<Option> listOfOptions = GetAllOptionsFromQuestionID(firstQuestion.QuestionID);
