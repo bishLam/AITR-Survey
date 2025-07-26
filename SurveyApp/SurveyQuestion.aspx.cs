@@ -51,11 +51,7 @@ namespace AITR_Survey
                 {
                     currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
                 }
-                Question question = GetQuestionFromQuestionID(currentQuestionID);
-                //now store the current value in the session and prompt them with the next question
-                var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
-                SetQuestionTextInAFormat(question);
-                SetUpListOfOptions(listOfOptions, question);                   
+                DisplayQuestionAndOptions(currentQuestionID);             
             }
         }
 
@@ -65,28 +61,25 @@ namespace AITR_Survey
             if (answerPlaceholder.Controls.Count > 0) //meaning there is at least one control
             {
 
-                if (CurrentPlaceholderType.Equals(AppConstants.PlaceholderTypeRadioButton))
+
+                //check if the current placeholder type is radio button, text box or check box
+
+                RadioButtonList rbl = answerPlaceholder.FindControl("RadioButtonList") as RadioButtonList;
+                CheckBoxList cb = answerPlaceholder.FindControl("CheckBoxList") as CheckBoxList;
+                TextBox textbox = answerPlaceholder.FindControl("TextBox") as TextBox;
+
+                if (rbl != null && cb == null && textbox == null)
                 {
-                    //if the current placeholder type is radio button, then we need to find the selected option
-                    for (int i = 0; i < answerPlaceholder.Controls.Count; i++)
-                    {
-                        if (answerPlaceholder.Controls[i] is RadioButton rb && rb.Checked)
-                        {
-                            //now store the data into the session for later
-                            Int32 selectedOptionID = Int32.Parse(rb.ID);
-                            //System.Diagnostics.Debug.WriteLine(selectedOptionID);
-                            int nextQuestionID;
-                            nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
-                            HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
-                            DisplayQuestionAndOptions(nextQuestionID);
-                            return;
-                        }
-                    }
+                   Int32 selectedOptionID =  Int32.Parse(rbl.SelectedItem.Value);
+                    int nextQuestionID;
+                    nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
+                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                    DisplayQuestionAndOptions(nextQuestionID);
+                    return;
                 }
-                else if (CurrentPlaceholderType.Equals(AppConstants.PlaceholderTypeTextBox))
+
+                else if(rbl == null && cb == null && textbox != null)
                 {
-                    // if the current placeholder is a text box, we need to get the value of text box
-                    TextBox textbox = FindControl("TextBox1") as TextBox;
                     string answer = textbox.Text;
 
                     //now display the next question
@@ -96,15 +89,13 @@ namespace AITR_Survey
                     return;
                 }
 
-                else if (CurrentPlaceholderType.Equals(AppConstants.PlaceholderTypeCheckBox))
+                else if (rbl == null && cb != null && textbox == null)
                 {
                     //loop through all the controls in the placeholder
                     Int32 ultimateQuestionID = 0;
-
-                    CheckBoxList cb = FindControl("CheckBox") as CheckBoxList;
                     List<ListItem> selectedOptions = cb.Items.Cast<ListItem>().Where(n => n.Selected).ToList();
 
-                    if(selectedOptions.Count < 1)
+                    if (selectedOptions.Count < 1)
                     {
                         CustomValidator validator = new CustomValidator();
                         validator.ID = "CheckBoxValidator";
@@ -114,7 +105,7 @@ namespace AITR_Survey
                         return;
                     }
 
-                    else if(selectedOptions.Count == 1 &&  hasQueue == false)
+                    else if (selectedOptions.Count == 1 && hasQueue == false)
                     {
                         //now store the data into the session for later
                         Int32 selectedOptionID = Int32.Parse(selectedOptions[0].Value);
@@ -126,7 +117,7 @@ namespace AITR_Survey
                         return;
                     }
 
-                    else if(selectedOptions.Count > 1 && hasQueue == false)
+                    else if (selectedOptions.Count > 1 && hasQueue == false)
                     {
                         List<Int32> questionsQueue = new List<Int32>();
 
@@ -142,14 +133,14 @@ namespace AITR_Survey
                             }
                         }
 
-                        if(nextQuestionIDsFromSelectedOptions.Count == 1)
-                        {                   
+                        if (nextQuestionIDsFromSelectedOptions.Count == 1)
+                        {
                             Int32 nextQuestionID = Int32.Parse(nextQuestionIDsFromSelectedOptions[0].ToString());
                             HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
                             DisplayQuestionAndOptions(nextQuestionID);
                             return;
                         }
-                        if(nextQuestionIDsFromSelectedOptions.Count > 1)
+                        if (nextQuestionIDsFromSelectedOptions.Count > 1)
                         {
                             //this means there needs to be a queue now
                             HttpContext.Current.Session["QuestionQueue"] = nextQuestionIDsFromSelectedOptions;
@@ -167,7 +158,7 @@ namespace AITR_Survey
                                 }
                             }
 
-                            if(ultimateQuestionID == 0)
+                            if (ultimateQuestionID == 0)
                             {
                                 //now the next question to display wouldbe other questions than ultimate one
                                 questionsQueue.Clear();
@@ -204,27 +195,25 @@ namespace AITR_Survey
 
                     }
 
-                    else if(hasQueue == true && questionsQueue.Count == 1)
+                    else if (hasQueue == true && questionsQueue.Count == 1)
                     {
 
                         Int32 nextQuestionID = questionsQueue.First();
                         //HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
                         DisplayQuestionAndOptions(nextQuestionID);
-
-                        List<Option> options = GetAllOptionsFromQuestionID(nextQuestionID);
-                       HttpContext.Current.Session["currentQuestionID"] = FindNextQuestionFromOptionID(options[0].MultipleChoiceOptionID);
+                        HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
                         HttpContext.Current.Session.Remove("QuestionQueue");
                         HttpContext.Current.Session.Remove("hasQueue");
                         HttpContext.Current.Session.Remove("ultimateQuestionID");
                         return;
                     }
 
-                    else if(hasQueue == true && questionsQueue.Count > 1)
+                    else if (hasQueue == true && questionsQueue.Count > 1)
                     {
 
                         var utimateQuestionSessionID = HttpContext.Current.Session["ultimateQuestionID"];
 
-                        if(utimateQuestionSessionID == null)
+                        if (utimateQuestionSessionID == null)
                         {
                             Int32 nextQuestionID = questionsQueue.First(); //get the first question from the queue
                             HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
@@ -251,7 +240,7 @@ namespace AITR_Survey
                                                                                            //stions queue in the session
                             return;
                         }
-                        
+
 
                     }
 
@@ -390,17 +379,28 @@ namespace AITR_Survey
                 //Response.Write("This is a Single choice question.");
                 //populate the placeholder with radio button options
 
-                //get the placeholder first and clear the existing ones              
-                foreach(Option option in options)
+                //get the placeholder first and clear the existing ones
+                RadioButtonList rbl = new RadioButtonList();
+                rbl.ID = "RadioButtonList";
+                foreach (Option option in options)
                 {
-                    RadioButton radioButton = new RadioButton();
-                    radioButton.ID = option.MultipleChoiceOptionID.ToString();
-                    radioButton.GroupName = "options";
-                    radioButton.Text = option.OptionText;
-                    CurrentPlaceholderType = AppConstants.PlaceholderTypeRadioButton;
-                    answerPlaceholder.Controls.Add(radioButton);
-                    answerPlaceholder.Controls.Add(new LiteralControl("<br />")); //add a line break after each radio button
+                    ListItem li = new ListItem();
+                    li.Text = option.OptionText;
+                    li.Value = option.MultipleChoiceOptionID.ToString();
+                    rbl.Items.Add(li);
+
+                    
+
+
+                    //    RadioButton radioButton = new RadioButton();
+                    //    radioButton.ID = option.MultipleChoiceOptionID.ToString();
+                    //    radioButton.GroupName = "options";
+                    //    radioButton.Text = option.OptionText;
+                    //    CurrentPlaceholderType = AppConstants.PlaceholderTypeRadioButton;
+
                 }
+                    answerPlaceholder.Controls.Add(rbl);
+               
 
 
             }
@@ -408,7 +408,7 @@ namespace AITR_Survey
             {
                 //Response.Write("This is a multiple choice question.");
                 CheckBoxList cb = new CheckBoxList();
-                cb.ID = "CheckBox";
+                cb.ID = "CheckBoxList";
 
                 foreach(Option option in options)
                 {
@@ -433,7 +433,7 @@ namespace AITR_Survey
                 //add a text box to the placeholder
                 CurrentPlaceholderType = AppConstants.PlaceholderTypeTextBox;
                 TextBox textBox = new TextBox();
-                textBox.ID = "TextBox1";              
+                textBox.ID = "TextBox";              
                 textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
                 //HttpContext.Current.Session["currentQuestionID"] = currentQuestionID.ToString();
                 //textBox.TextMode = TextBoxMode.MultiLine;
