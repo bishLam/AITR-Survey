@@ -24,7 +24,7 @@ namespace AITR_Survey
         {
 
             var sessionQueue = HttpContext.Current.Session["QuestionQueue"];
-            var sessionHasQueue = HttpContext.Current.Session["hasQueue"];
+            var sessionHasQueue = HttpContext.Current.Session["HasQueue"];
             if (sessionQueue != null && sessionHasQueue != null)
             {
                 questionsQueue = (List<Int32>)sessionQueue;
@@ -53,8 +53,8 @@ namespace AITR_Survey
                 }
                 Question question = GetQuestionFromQuestionID(currentQuestionID);
                 //now store the current value in the session and prompt them with the next question
-                SetQuestionTextInAFormat(question);
                 var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
+                SetQuestionTextInAFormat(question);
                 SetUpListOfOptions(listOfOptions, question);                   
             }
         }
@@ -100,185 +100,167 @@ namespace AITR_Survey
                 {
                     //loop through all the controls in the placeholder
                     Int32 ultimateQuestionID = 0;
-                    for(int i = 0; i<answerPlaceholder.Controls.Count; i++)
+
+                    CheckBoxList cb = FindControl("CheckBox") as CheckBoxList;
+                    List<ListItem> selectedOptions = cb.Items.Cast<ListItem>().Where(n => n.Selected).ToList();
+
+                    if(selectedOptions.Count < 1)
                     {
-                        //if the current question has branch, then we need to find the next question from the selected options
-                        Int32 currentQuestionID = 0;
-                        if (hasQueue)
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "CheckBoxValidator";
+                        validator.ErrorMessage = "Please select at least one option";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+
+                    else if(selectedOptions.Count == 1 &&  hasQueue == false)
+                    {
+                        //now store the data into the session for later
+                        Int32 selectedOptionID = Int32.Parse(selectedOptions[0].Value);
+                        //System.Diagnostics.Debug.WriteLine(selectedOptionID);
+                        int nextQuestionID;
+                        nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
+                        HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                        DisplayQuestionAndOptions(nextQuestionID);
+                        return;
+                    }
+
+                    else if(selectedOptions.Count > 1 && hasQueue == false)
+                    {
+                        List<Int32> questionsQueue = new List<Int32>();
+
+                        List<Int32> nextQuestionIDsFromSelectedOptions = new List<Int32>();
+                        foreach (ListItem singleOption in selectedOptions)
                         {
-                            currentQuestionID = questionsQueue[0]; //if there is a queue, then we need to get the first question from the queue
+                            Int32 singleSelectedOption = Int32.Parse(singleOption.Value.ToString());
+                            Int32 nextQuestionIDFromOption = FindNextQuestionFromOptionID(singleSelectedOption);
+
+                            if (!nextQuestionIDsFromSelectedOptions.Contains(nextQuestionIDFromOption))
+                            {
+                                nextQuestionIDsFromSelectedOptions.Add(nextQuestionIDFromOption);
+                            }
+                        }
+
+                        if(nextQuestionIDsFromSelectedOptions.Count == 1)
+                        {                   
+                            Int32 nextQuestionID = Int32.Parse(nextQuestionIDsFromSelectedOptions[0].ToString());
+                            HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                            DisplayQuestionAndOptions(nextQuestionID);
+                            return;
+                        }
+                        if(nextQuestionIDsFromSelectedOptions.Count > 1)
+                        {
+                            //this means there needs to be a queue now
+                            HttpContext.Current.Session["QuestionQueue"] = nextQuestionIDsFromSelectedOptions;
+
+                            foreach (Int32 insideQuestion in nextQuestionIDsFromSelectedOptions)
+                            {
+                                List<Option> insideOptions = GetAllOptionsFromQuestionID(insideQuestion);
+                                foreach (Option option in insideOptions)
+                                {
+                                    if (nextQuestionIDsFromSelectedOptions.Contains(option.NextQuestionID))
+                                    {
+                                        ultimateQuestionID = option.NextQuestionID;
+                                        HttpContext.Current.Session["ultimateQuestionID"] = ultimateQuestionID;
+                                    }
+                                }
+                            }
+
+                            if(ultimateQuestionID == 0)
+                            {
+                                //now the next question to display wouldbe other questions than ultimate one
+                                questionsQueue.Clear();
+                                questionsQueue = nextQuestionIDsFromSelectedOptions;
+                                Int32 nextQuestionID = questionsQueue.First(); //get the first question from the queue
+                                HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                                DisplayQuestionAndOptions(nextQuestionID);
+                                questionsQueue.Remove(nextQuestionID);
+                                HttpContext.Current.Session["HasQueue"] = true; //set the hasQueue to true
+                                hasQueue = true; //set the hasQueue to true
+                                HttpContext.Current.Session["QuestionQueue"] = questionsQueue; //store the que
+                                                                                               //stions queue in the session
+                                return;
+                            }
+                            else
+                            {
+                                //now the next question to display wouldbe other questions than ultimate one
+                                questionsQueue.Clear();
+                                questionsQueue = nextQuestionIDsFromSelectedOptions;
+                                questionsQueue.Remove(ultimateQuestionID);
+                                Int32 nextQuestionID = questionsQueue.First(); //get the first question from the queue
+                                HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                                DisplayQuestionAndOptions(nextQuestionID);
+                                questionsQueue.Remove(nextQuestionID);
+                                questionsQueue.Add(ultimateQuestionID); //add the ultimate question to the end of the queue
+                                HttpContext.Current.Session["HasQueue"] = true; //set the hasQueue to true
+                                hasQueue = true; //set the hasQueue to true
+                                HttpContext.Current.Session["QuestionQueue"] = questionsQueue; //store the que
+
+                            }
+                            //stions queue in the session
+                            return;
+                        }
+
+                    }
+
+                    else if(hasQueue == true && questionsQueue.Count == 1)
+                    {
+
+                        Int32 nextQuestionID = questionsQueue.First();
+                        //HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                        DisplayQuestionAndOptions(nextQuestionID);
+
+                        List<Option> options = GetAllOptionsFromQuestionID(nextQuestionID);
+                       HttpContext.Current.Session["currentQuestionID"] = FindNextQuestionFromOptionID(options[0].MultipleChoiceOptionID);
+                        HttpContext.Current.Session.Remove("QuestionQueue");
+                        HttpContext.Current.Session.Remove("hasQueue");
+                        HttpContext.Current.Session.Remove("ultimateQuestionID");
+                        return;
+                    }
+
+                    else if(hasQueue == true && questionsQueue.Count > 1)
+                    {
+
+                        var utimateQuestionSessionID = HttpContext.Current.Session["ultimateQuestionID"];
+
+                        if(utimateQuestionSessionID == null)
+                        {
+                            Int32 nextQuestionID = questionsQueue.First(); //get the first question from the queue
+                            HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                            DisplayQuestionAndOptions(nextQuestionID);
+                            questionsQueue.Remove(nextQuestionID);
+                            HttpContext.Current.Session["HasQueue"] = true; //set the hasQueue to true
+                            hasQueue = true; //set the hasQueue to true
+                            HttpContext.Current.Session["QuestionQueue"] = questionsQueue; //store the que
+                                                                                           //stions queue in the session
+                            return;
                         }
                         else
                         {
-                            currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                            ultimateQuestionID = (Int32)utimateQuestionSessionID;
+                            questionsQueue.Remove(ultimateQuestionID);
+                            Int32 nextQuestionID = questionsQueue.First(); //get the first question from the queue
+                            HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                            DisplayQuestionAndOptions(nextQuestionID);
+                            questionsQueue.Remove(nextQuestionID);
+                            questionsQueue.Add(ultimateQuestionID); //add the ultimate question to the end of the queue
+                            HttpContext.Current.Session["HasQueue"] = true; //set the hasQueue to true
+                            hasQueue = true; //set the hasQueue to true
+                            HttpContext.Current.Session["QuestionQueue"] = questionsQueue; //store the que
+                                                                                           //stions queue in the session
+                            return;
                         }
-                        //get the question from the question ID
-                        Question currentQuestion = GetQuestionFromQuestionID(currentQuestionID);
+                        
 
-                        if (currentQuestion == null) return;
-
-                        if (answerPlaceholder.Controls[i] is CheckBoxList cb)
-                        {
-                            List<ListItem> selectedItems = cb.Items.Cast<ListItem>().Where(n => n.Selected).ToList();
-
-
-                            //only if the selected options is more than 1, we can have a queue of questions so
-                            if (selectedItems.Count > 1)
-                            {
-                                List<Int32> listOfSelectedOptionsNextQuestion = new List<Int32>();
-
-
-                                foreach (ListItem item in selectedItems)
-                                {
-                                    Int32 optionID = Int32.Parse(item.Value.ToString());
-                                    Int32 nextQuestionIDFromOption = FindNextQuestionFromOptionID(optionID);
-                                    listOfSelectedOptionsNextQuestion.Add(nextQuestionIDFromOption);
-                                    Question nextQuestionFromOption = GetQuestionFromQuestionID(nextQuestionIDFromOption);
-
-
-                                    ////this is the questions queue which we are supposed to iterate before going into the ultimate one.
-                                    if (!questionsQueue.Contains(nextQuestionFromOption.QuestionID))
-                                    {
-                                        questionsQueue.Add(nextQuestionFromOption.QuestionID);
-                                        if (questionsQueue.Count > 1)
-                                        {
-                                            hasQueue = true; //if there is more than one question in the queue, then we have a queue
-                                        }
-                                        else
-                                        {
-                                            hasQueue = false; //if there is only one question in the queue, then we don't have a queue
-                                        }
-                                    }
-                                }
-
-                                if(listOfSelectedOptionsNextQuestion.Distinct().Count() == 1) //this means all of the options lead to the same question and are same
-                                {
-                                    //now store the data into the session for later
-                                    Int32 nextQuestionID = listOfSelectedOptionsNextQuestion.First();
-                                    //System.Diagnostics.Debug.WriteLine(selectedOptionID);
-                                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
-                                    HttpContext.Current.Session.Remove("QuestionQueue");
-                                    HttpContext.Current.Session.Remove("hasQueue");
-                                    DisplayQuestionAndOptions(nextQuestionID);
-                                    hasQueue = false;
-                                    return;
-                                }
-
-                                else
-                                {
-                                    hasQueue = true;
-                                }
-
-
-                            }
-                            else
-                            {
-                                int nextQuestionID;
-                                nextQuestionID = FindNextQuestionFromOptionID(Int32.Parse(selectedItems[0].Value));
-                                HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
-                                DisplayQuestionAndOptions(nextQuestionID);
-                                HttpContext.Current.Session.Remove("QuestionQueue");
-                                HttpContext.Current.Session.Remove("hasQueue");
-                                return;
-                            }
-                            
-                            if (hasQueue)
-                            {
-                                //now we need to find options from each of this queue to find the next questionID
-                                foreach (Int32 insideQuestion in questionsQueue)
-                                {
-                                    List<Option> insideOptions = GetAllOptionsFromQuestionID(insideQuestion);
-                                    foreach (Option option in insideOptions)
-                                    {
-                                        if (questionsQueue.Contains(option.NextQuestionID))
-                                        {
-                                            ultimateQuestionID = option.NextQuestionID;
-                                            HttpContext.Current.Session["ultimateQuestionID"] = ultimateQuestionID;
-                                        }
-                                    }
-                                }
-                            }
-                                
-
-                                //from the questionsQueue, until ultimate question is the only questionLeft, display those questions
-
-
-                            if(questionsQueue.Count <= 1)
-                            {
-                                ultimateQuestionID = Int32.Parse(HttpContext.Current.Session["ultimateQuestionID"].ToString());
-                                HttpContext.Current.Session["currentQuestionID"] = ultimateQuestionID.ToString();
-                                DisplayQuestionAndOptions(ultimateQuestionID);
-                                HttpContext.Current.Session.Remove("QuestionQueue");
-                                HttpContext.Current.Session.Remove("hasQueue");
-                                return;
-                            }
-
-                            else
-                            {
-
-
-                                questionsQueue.Remove(ultimateQuestionID);
-                                var nextQuestionToDisplay = questionsQueue.First();
-                                HttpContext.Current.Session["currentQuestionID"] = nextQuestionToDisplay.ToString();
-                                DisplayQuestionAndOptions(nextQuestionToDisplay);
-                                questionsQueue.Remove(nextQuestionToDisplay);
-                                questionsQueue.Add(ultimateQuestionID);
-                                return;
-
-
-
-                                //for (Int32 j = 0; j < questionsQueue.Count; j++)
-                                //{
-                                //    ultimateQuestionID = Int32.Parse(HttpContext.Current.Session["ultimateQuestionID"].ToString());
-                                //    if (!questionsQueue[j].Equals(ultimateQuestionID)) //not checking when the questions queue is 1 and only the last onwe
-                                //    {
-                                //        //System.Diagnostics.Debug.WriteLine(selectedOptionID);
-                                //        Int32 nextQuestionID = questionsQueue[j];
-                                //        HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
-                                //        DisplayQuestionAndOptions(nextQuestionID);
-                                //        questionsQueue.Remove(nextQuestionID);
-                                //        //before returning I need to store the other two queues in the session
-
-                                //        HttpContext.Current.Session["QuestionQueue"] = questionsQueue;
-                                //        HttpContext.Current.Session["hasQueue"] = hasQueue;
-
-                                //    }
-                                //    else if (questionsQueue[j].Equals(ultimateQuestionID) && questionsQueue.Count == 1)
-                                //    {
-                                //        Response.Write("This is the ultimagte Question");
-                                //        HttpContext.Current.Session.Remove("QuestionQueue");
-                                //        HttpContext.Current.Session.Remove("hasQueue");
-                                //    }
-                                //}
-                            }
-                                
-                        }
-                        return;
                     }
+
+
                 }
 
             }
 
         }
-
-        //protected void GetOptionFromOptionID(Int32 optionID)
-        //{
-        //    string _connectionString = GetConnectionString();
-        //    Option option = new Option(); //default value if not found
-        //    SqlConnection conn = new SqlConnection();
-        //    conn.ConnectionString = _connectionString;
-        //    conn.Open();
-
-        //    //2.Prepare the consume instruction
-        //    SqlCommand questionCommand = new SqlCommand("SELECT * FROM MultipleChoiceOption WHERE MultipleChoiceOptionID =" + optionID, conn); //command to get the questions
-
-        //    //3. Consume
-        //    SqlDataReader reader = questionCommand.ExecuteReader();
-        //    reader.Read();
-        //    nextQuestionID = Int32.Parse(reader["NextQuestionID"].ToString());
-        //    conn.Close();
-        //    return nextQuestionID;
-        //}
 
         protected void DisplayQuestionAndOptions(Int32 questionID)
         {
