@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -43,14 +44,7 @@ namespace AITR_Survey
             else
             {
                 Int32 currentQuestionID = 0;
-                if (hasQueue)
-                {
-                    currentQuestionID = questionsQueue[0]; //if there is a queue, then we need to get the first question from the queue
-                }
-                else
-                {
-                    currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
-                }
+                currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
                 DisplayQuestionAndOptions(currentQuestionID);             
             }
         }
@@ -120,7 +114,6 @@ namespace AITR_Survey
                     else if (selectedOptions.Count > 1 && hasQueue == false)
                     {
                         List<Int32> questionsQueue = new List<Int32>();
-
                         List<Int32> nextQuestionIDsFromSelectedOptions = new List<Int32>();
                         foreach (ListItem singleOption in selectedOptions)
                         {
@@ -388,25 +381,18 @@ namespace AITR_Survey
                     li.Text = option.OptionText;
                     li.Value = option.MultipleChoiceOptionID.ToString();
                     rbl.Items.Add(li);
-
-                    
-
-
-                    //    RadioButton radioButton = new RadioButton();
-                    //    radioButton.ID = option.MultipleChoiceOptionID.ToString();
-                    //    radioButton.GroupName = "options";
-                    //    radioButton.Text = option.OptionText;
-                    //    CurrentPlaceholderType = AppConstants.PlaceholderTypeRadioButton;
-
                 }
-                    answerPlaceholder.Controls.Add(rbl);
-               
+                answerPlaceholder.Controls.Add(rbl);
 
-
+                RequiredFieldValidator validator = new RequiredFieldValidator();
+                validator.ID = "validator";
+                validator.ControlToValidate = "RadioButtonList";
+                validator.ErrorMessage = "Please select one option";
+                answerPlaceholder.Controls.Add(validator);
             }
+
             else if (questionType.Equals(AppConstants.QuestionTypeMultipleChoice))
             {
-                //Response.Write("This is a multiple choice question.");
                 CheckBoxList cb = new CheckBoxList();
                 cb.ID = "CheckBoxList";
 
@@ -418,13 +404,18 @@ namespace AITR_Survey
                     cb.Items.Add(item);
                     //answerPlaceholder.Controls.Add(new LiteralControl("<br />")); //add a line break after each radio button
                 }
+
                 CurrentPlaceholderType = AppConstants.PlaceholderTypeCheckBox;
                 answerPlaceholder.Controls.Add(cb);
-                
-                
 
+                CustomValidator validator = new CustomValidator();
+                validator.ID = "validator";
+                //validator.ErrorMessage = "Please select at least one option";
+                validator.ServerValidate += new ServerValidateEventHandler(ValidateCheckboxList);
 
-                
+                answerPlaceholder.Controls.Add(validator);
+
+               
             }
 
             else if (questionType.Equals(AppConstants.QuestionTypeTextInput))
@@ -442,9 +433,29 @@ namespace AITR_Survey
                 textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
 
+                RequiredFieldValidator validator = new RequiredFieldValidator();
+                validator.ID = "validator";
+                validator.ControlToValidate = "TextBox";
+                validator.ErrorMessage = "Textbox cannot be empty";
+                answerPlaceholder.Controls.Add(validator);
+
+
             }
 
             answerPlaceholder.Controls.Add(new LiteralControl("<br /> <br />"));
+        }
+
+        protected void ValidateCheckboxList(Object o, ServerValidateEventArgs e)
+        {
+            CheckBoxList cbl = (CheckBoxList)answerPlaceholder.FindControl("CheckBoxList");
+            if (cbl != null && cbl.Items.Cast<ListItem>().Any(item => item.Selected))
+            {
+                e.IsValid = true;
+            }
+            else
+            {
+                e.IsValid = false;
+            }
         }
 
         protected void LoadFirstQuestion()
@@ -452,50 +463,61 @@ namespace AITR_Survey
             //here connect the database
 
             //1. Open the connection string
-            String _connectionString = GetConnectionString();
-
-            SqlConnection conn = new SqlConnection();
-            conn.ConnectionString = _connectionString;
-            conn.Open();
-
-            //2.Prepare the consume instruction
-            SqlCommand questionCommand = new SqlCommand("SELECT * FROM Question WHERE IsFirstQuestion='True'", conn); //command to get the questions
-
-            //3. Consume
-            SqlDataReader reader = questionCommand.ExecuteReader();
-
-
-            //4. for the storage
-            Question firstQuestion= new Question();
-            while (reader.Read())
+            try
             {
-                firstQuestion.QuestionID = Int32.Parse(reader["QuestionID"].ToString());
-                firstQuestion.QuestionText = reader["QuestionText"].ToString();
-                firstQuestion.NextQuestionForTextInput = reader["NextQuestionForTextInput"].ToString();
-                firstQuestion.IsFirstQuestion = reader["isFirstQuestion"].ToString();
-                firstQuestion.QuestionType = reader["QuestionType"].ToString();
-                firstQuestion.HasBranch = reader["HasBranch"].ToString();
+                String _connectionString = GetConnectionString();
 
-                if (DBNull.Value == reader["MaxAnswerSelection"])
+                SqlConnection conn = new SqlConnection();
+                conn.ConnectionString = _connectionString;
+                conn.Open();
+
+                //2.Prepare the consume instruction
+                SqlCommand questionCommand = new SqlCommand("SELECT * FROM Question WHERE IsFirstQuestion='True'", conn); //command to get the questions
+
+                //3. Consume
+                SqlDataReader reader = questionCommand.ExecuteReader();
+
+
+                //4. for the storage
+                Question firstQuestion = new Question();
+                while (reader.Read())
                 {
-                    firstQuestion.MaxSelection = 0; //default value if not set
+                    firstQuestion.QuestionID = Int32.Parse(reader["QuestionID"].ToString());
+                    firstQuestion.QuestionText = reader["QuestionText"].ToString();
+                    firstQuestion.NextQuestionForTextInput = reader["NextQuestionForTextInput"].ToString();
+                    firstQuestion.IsFirstQuestion = reader["isFirstQuestion"].ToString();
+                    firstQuestion.QuestionType = reader["QuestionType"].ToString();
+                    firstQuestion.HasBranch = reader["HasBranch"].ToString();
+
+                    if (DBNull.Value == reader["MaxAnswerSelection"])
+                    {
+                        firstQuestion.MaxSelection = 0; //default value if not set
+                    }
+                    else
+                    {
+                        //if the value is not null, then parse it to int
+                        firstQuestion.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
+                    }
                 }
-                else
-                {
-                    //if the value is not null, then parse it to int
-                    firstQuestion.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
-                }                   
+                //currentQuestionID = firstQuestion.QuestionID; //set the current question ID to the first question ID
+                HttpContext.Current.Session["currentQuestionID"] = firstQuestion.QuestionID.ToString(); //store the current question ID in the session
+                reader.Close();
+                //at this point we would have the first question. Now lets take the options
+                List<Option> listOfOptions = GetAllOptionsFromQuestionID(firstQuestion.QuestionID);
+                conn.Close();
+                //Now we have the question and options, lets display them
+                SetQuestionTextInAFormat(firstQuestion); //display the question text
+                SetUpListOfOptions(listOfOptions, firstQuestion);
             }
-            //currentQuestionID = firstQuestion.QuestionID; //set the current question ID to the first question ID
-            HttpContext.Current.Session["currentQuestionID"] = firstQuestion.QuestionID.ToString(); //store the current question ID in the session
-            reader.Close();
-            //at this point we would have the first question. Now lets take the options
-            List<Option> listOfOptions = GetAllOptionsFromQuestionID(firstQuestion.QuestionID);
-            conn.Close();
-            //Now we have the question and options, lets display them
-            SetQuestionTextInAFormat(firstQuestion); //display the question text
-            SetUpListOfOptions(listOfOptions, firstQuestion);
-            
+
+            catch (Exception ex)
+            {
+                Response.Redirect("../SurveyApp/SurveyApp.aspx");
+                Label label = new Label();
+                label.Text = "Something went wrong. Please see the msg below: " + ex.Message;
+                answerPlaceholder.Controls.Clear();
+                answerPlaceholder.Controls.Add(label);               
+            }
         }
     }
 }

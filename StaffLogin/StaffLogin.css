@@ -9,13 +9,18 @@
 
 
 .submitButton {
-    background-color: #1dd88d;
-    margin-top: 20px;
-    padding-left: 40px;
-    padding-right: 40px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    background-color: #4CAF50; /* Green */
+    border: none;
     border-radius: 10px;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin-left: 10px;
+    cursor: pointer;
+    margin-top:20px;
 }
 
 .inputContainer {
@@ -29,4 +34,13 @@
     color: darkcyan;
     font-size: 25px;
     margin-bottom: 40px;
+}
+
+.validator{
+    color:red;
+    font-size:15px;
+    margin-left:20px;
+    margin-top: 5px;
+    font-style:italic;
+    font-weight:300;
 }

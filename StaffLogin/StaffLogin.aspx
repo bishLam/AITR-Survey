@@ -15,13 +15,21 @@
             </div>
             <div class="inputContainer">
                 <asp:Label runat="server" ID="usernameLabel">Username</asp:Label>
-                <asp:TextBox ID="StaffUserNameTextBox" runat="server"></asp:TextBox>
+                <asp:TextBox AutoCompleteType="Email" ID="StaffUserNameTextBox" runat="server"></asp:TextBox>
+                <asp:RequiredFieldValidator ID="requredFieldValidator" runat="server" class ="validator"
+                    ErrorMessage="*required"
+                    ControlToValidate="StaffUserNameTextBox"
+                    Display="Dynamic" />
             </div>
             <br />
             <!-- Password Field -->
             <div class="inputContainer">
                 <asp:Label runat="server" ID="passwordLabel">Password</asp:Label>
                 <asp:TextBox ID="StaffPasswwordTextBox" runat="server"></asp:TextBox>
+                <asp:RequiredFieldValidator class ="validator" ID="RequiredFieldValidator1" runat="server"
+                    ErrorMessage="*required"
+                    ControlToValidate="StaffPasswwordTextBox"
+                    Display="Dynamic" />
             </div>
             <asp:Button class="submitButton" ID="LoginButton" runat="server" Text="Log In" OnClick="LoginButton_Click" />
         </div>
