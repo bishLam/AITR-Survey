@@ -73,11 +73,13 @@
     <Content Include="StaffLogin\StaffLogin.css" />
     <Content Include="StaffDashboard\StaffDashboard.aspx" />
     <Content Include="StaffDashboard\StaffDashboard.css" />
+    <Content Include="SurveyApp\FinishSurvey.aspx" />
     <Content Include="SurveyApp\SurveyQuestion.aspx" />
     <Content Include="Utils\Web.config" />
     <Content Include="StaffLogin\StaffLogin.aspx" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Answer.cs" />
     <Compile Include="Class\AppConstants.cs" />
     <Compile Include="DefaultPage\Default.aspx.cs">
       <DependentUpon>Default.aspx</DependentUpon>
@@ -109,6 +111,13 @@
     </Compile>
     <Compile Include="StaffDashboard\StaffDashboard.aspx.designer.cs">
       <DependentUpon>StaffDashboard.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="SurveyApp\FinishSurvey.aspx.cs">
+      <DependentUpon>FinishSurvey.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="SurveyApp\FinishSurvey.aspx.designer.cs">
+      <DependentUpon>FinishSurvey.aspx</DependentUpon>
     </Compile>
     <Compile Include="SurveyApp\SurveyQuestion.aspx.cs">
       <DependentUpon>SurveyQuestion.aspx</DependentUpon>

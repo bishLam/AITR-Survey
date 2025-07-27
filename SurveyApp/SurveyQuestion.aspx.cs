@@ -20,12 +20,18 @@ namespace AITR_Survey
         private String CurrentPlaceholderType;
         private Boolean hasQueue = false;
         private List<Int32> questionsQueue = new List<Int32>();
-
+        private List<Answer> answers = new List<Answer>();
+       
         protected void Page_Init(object sender, EventArgs e)
         {
 
             var sessionQueue = HttpContext.Current.Session["QuestionQueue"];
             var sessionHasQueue = HttpContext.Current.Session["HasQueue"];
+            var answerDictionarySession = HttpContext.Current.Session["answerList"];
+            if(answerDictionarySession != null)
+            {
+                answers = (List<Answer>)HttpContext.Current.Session["answerList"];
+            }
             if (sessionQueue != null && sessionHasQueue != null)
             {
                 questionsQueue = (List<Int32>)sessionQueue;
@@ -61,10 +67,24 @@ namespace AITR_Survey
                 RadioButtonList rbl = answerPlaceholder.FindControl("RadioButtonList") as RadioButtonList;
                 CheckBoxList cb = answerPlaceholder.FindControl("CheckBoxList") as CheckBoxList;
                 TextBox textbox = answerPlaceholder.FindControl("TextBox") as TextBox;
+                TextBox dateTextbox = answerPlaceholder.FindControl("DateTextBox") as TextBox;
 
-                if (rbl != null && cb == null && textbox == null)
+                if (rbl != null && cb == null && textbox == null && dateTextbox == null)
                 {
                    Int32 selectedOptionID =  Int32.Parse(rbl.SelectedItem.Value);
+
+
+                    //add the answer and question to the session
+                    Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                    
+
+                    Answer answer = new Answer();
+                    answer.QuestionID = questionID;
+                    answer.SingleChoiceAnswerID = selectedOptionID;
+                    answer.TextInputAnswer = null; //since this is a single choice question, the text input answer is null
+                    answers.Add(answer);
+                    HttpContext.Current.Session["answerList"] = answers;
+
                     int nextQuestionID;
                     nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
                     HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
@@ -72,22 +92,67 @@ namespace AITR_Survey
                     return;
                 }
 
-                else if(rbl == null && cb == null && textbox != null)
+                else if(rbl == null && cb == null && textbox != null && dateTextbox == null)
                 {
-                    string answer = textbox.Text;
+                    string tbxText = textbox.Text;
 
-                    //now display the next question
-                    //since we have already assigned the currentQuestionID when we initialise the text box, this is safe to do use it here   
+
+                    //add the answer and question to the session
+                    var questionID = HttpContext.Current.Session["currentQuestionID"];
+
+                    Answer answer = new Answer();
+                    answer.QuestionID = Int32.Parse(questionID.ToString());
+                    answer.SingleChoiceAnswerID = null;
+                    answer.TextInputAnswer = tbxText;
+                    answers.Add(answer);
+                    HttpContext.Current.Session["answerList"] = answers;
+
+                    if (nextQuestionForTextInput == 0)
+                    {
+                        Response.Redirect("../SurveyApp/FinishSurvey.aspx");
+                        return;
+                    }
                     HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
                     DisplayQuestionAndOptions(nextQuestionForTextInput);
                     return;
                 }
 
-                else if (rbl == null && cb != null && textbox == null)
+                else if (dateTextbox != null && rbl == null && cb == null && textbox == null)
+                {
+                    Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                    //add the answer and question to the session
+                    Answer answer = new Answer();
+                    answer.QuestionID = questionID;
+                    answer.SingleChoiceAnswerID = null;
+                    answer.TextInputAnswer = dateTextbox.Text; //since this is a single choice question, the text input answer is null
+                    answers.Add(answer);
+                    HttpContext.Current.Session["answerList"] = answers;
+
+                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
+                    DisplayQuestionAndOptions(nextQuestionForTextInput);
+                    return;
+                }
+
+                else if (rbl == null && cb != null && textbox == null && dateTextbox == null)
                 {
                     //loop through all the controls in the placeholder
                     Int32 ultimateQuestionID = 0;
                     List<ListItem> selectedOptions = cb.Items.Cast<ListItem>().Where(n => n.Selected).ToList();
+
+
+                    //check if the selected options are less than 1
+                    foreach (ListItem item in selectedOptions)
+                    {
+                        //System.Diagnostics.Debug.WriteLine(item.Value);
+                        Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                        //add the answer and question to the session
+                        Answer answer = new Answer();
+                        answer.QuestionID = questionID;
+                        answer.SingleChoiceAnswerID = Int32.Parse(item.Value);
+                        answer.TextInputAnswer = null; //since this is a single choice question, the text input answer is null
+                        answers.Add(answer);
+                        HttpContext.Current.Session["answerList"] = answers;
+                    }
 
                     if (selectedOptions.Count < 1)
                     {
@@ -104,6 +169,17 @@ namespace AITR_Survey
                         //now store the data into the session for later
                         Int32 selectedOptionID = Int32.Parse(selectedOptions[0].Value);
                         //System.Diagnostics.Debug.WriteLine(selectedOptionID);
+
+
+                        Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                        //add the answer and question to the session
+                        Answer answer = new Answer();
+                        answer.QuestionID = questionID;
+                        answer.SingleChoiceAnswerID = selectedOptionID;
+                        answer.TextInputAnswer = null; //since this is a single choice question, the text input answer is null
+                        answers.Add(answer);
+                        HttpContext.Current.Session["answerList"] = answers;
+
                         int nextQuestionID;
                         nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
                         HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
@@ -391,7 +467,7 @@ namespace AITR_Survey
                 answerPlaceholder.Controls.Add(validator);
             }
 
-            else if (questionType.Equals(AppConstants.QuestionTypeMultipleChoice))
+            else if (questionType == AppConstants.QuestionTypeMultipleChoice)
             {
                 CheckBoxList cb = new CheckBoxList();
                 cb.ID = "CheckBoxList";
@@ -404,8 +480,6 @@ namespace AITR_Survey
                     cb.Items.Add(item);
                     //answerPlaceholder.Controls.Add(new LiteralControl("<br />")); //add a line break after each radio button
                 }
-
-                CurrentPlaceholderType = AppConstants.PlaceholderTypeCheckBox;
                 answerPlaceholder.Controls.Add(cb);
 
                 CustomValidator validator = new CustomValidator();
@@ -418,19 +492,16 @@ namespace AITR_Survey
                
             }
 
-            else if (questionType.Equals(AppConstants.QuestionTypeTextInput))
+            else if (questionType == AppConstants.QuestionTypeTextInput)
             {          
                 
                 //add a text box to the placeholder
-                CurrentPlaceholderType = AppConstants.PlaceholderTypeTextBox;
                 TextBox textBox = new TextBox();
                 textBox.ID = "TextBox";              
-                textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
-                //HttpContext.Current.Session["currentQuestionID"] = currentQuestionID.ToString();
-                //textBox.TextMode = TextBoxMode.MultiLine;
+                //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
                 nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
 
-                textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
+                //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
 
                 RequiredFieldValidator validator = new RequiredFieldValidator();
@@ -438,11 +509,29 @@ namespace AITR_Survey
                 validator.ControlToValidate = "TextBox";
                 validator.ErrorMessage = "Textbox cannot be empty";
                 answerPlaceholder.Controls.Add(validator);
-
-
             }
 
-            answerPlaceholder.Controls.Add(new LiteralControl("<br /> <br />"));
+            else if (questionType == AppConstants.QuestionTypeDate)
+            {
+                TextBox textBox = new TextBox();
+                textBox.ID = "DateTextBox";
+                textBox.TextMode = TextBoxMode.Date; //set the text box to date mode
+                textBox.Attributes.Add("placeholder", "Select a date");
+                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+                answerPlaceholder.Controls.Add(textBox);
+
+                RequiredFieldValidator validator = new RequiredFieldValidator();
+                validator.ID = "DateValidator";
+                validator.ControlToValidate = "DateTextBox";
+                validator.ErrorMessage = "Please select a date";
+                answerPlaceholder.Controls.Add(validator);
+            }
+
+            else if(questionType == AppConstants.QuestionTypeFinish || question.NextQuestionForTextInput == "0")
+            {
+                Response.Redirect("../SurveyApp/FinishSurvey.aspx");
+            }
+                answerPlaceholder.Controls.Add(new LiteralControl("<br />"));
         }
 
         protected void ValidateCheckboxList(Object o, ServerValidateEventArgs e)

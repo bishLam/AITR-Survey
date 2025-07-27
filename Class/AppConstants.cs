@@ -11,10 +11,7 @@ namespace AITR_Survey
         public static String QuestionTypeSingleChoice = "Single Choice";
         public static String QuestionTypeMultipleChoice = "Multiple Choice";
         public static String QuestionTypeTextInput = "Text Input";
-
-        public static String PlaceholderTypeRadioButton = "RadioButton";
-        public static String PlaceholderTypeCheckBox = "CheckBox";
-        public static String PlaceholderTypeTextBox = "TextBox";
-
+        public static String QuestionTypeDate = "Date";
+        public static String QuestionTypeFinish = "Finish";
     }
 }
