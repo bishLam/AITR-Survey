@@ -7,11 +7,16 @@ using System.Web.UI.WebControls;
 
 namespace AITR_Survey.SurveyApp
 {
-    public partial class FinishSurvey : System.Web.UI.Page
+    public partial class SurveyComplete : System.Web.UI.Page
     {
         protected void Page_Load(object sender, EventArgs e)
         {
 
+        }
+
+        protected void btnBackToHome_Click(object sender, EventArgs e)
+        {
+            Response.Redirect("~/DefaultPage/Default.aspx");
         }
     }
 }

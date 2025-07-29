@@ -1,0 +1,32 @@
+﻿body {
+    flex:
+}
+
+.buttonsRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap:10px;
+}
+
+.staffDetailsContainer{
+    display:flex;
+    flex-direction:row;
+    justify-content:space-between;
+    margin-bottom:30px;
+}
+
+.logoutButton {
+    background-color: #dc3545; /* Red background */
+    color: white; /* White text */
+    padding: 5px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease; /* Smooth hover effect */
+}
+
+.logoutButton :hover {
+    background-color: #c82333; /* Darker red on hover */
+}

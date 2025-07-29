@@ -70,17 +70,23 @@
     <Content Include="DefaultPage\Default.css" />
     <Content Include="RespondentRegister\RespondentRegister.css" />
     <Content Include="RespondentRegister\RespondentRegister.aspx" />
-    <Content Include="StaffLogin\StaffLogin.css" />
-    <Content Include="StaffDashboard\StaffDashboard.aspx" />
-    <Content Include="StaffDashboard\StaffDashboard.css" />
-    <Content Include="SurveyApp\FinishSurvey.aspx" />
+    <Content Include="Staff\Respondents\AllRespondents.aspx" />
+    <Content Include="Staff\Respondents\AllRespondents.css" />
+    <Content Include="Staff\StaffDashboard\StaffDashboard.aspx" />
+    <Content Include="Staff\StaffDashboard\StaffDashboard.css" />
+    <Content Include="Staff\StaffLogin\StaffLogin.css" />
+    <Content Include="Staff\StaffSearch\StaffSearch.aspx" />
+    <Content Include="Staff\StaffSearch\StaffSearch.css" />
+    <Content Include="SurveyApp\AnswersConfirmation.aspx" />
+    <Content Include="SurveyApp\SurveyComplete.aspx" />
     <Content Include="SurveyApp\SurveyQuestion.aspx" />
     <Content Include="Utils\Web.config" />
-    <Content Include="StaffLogin\StaffLogin.aspx" />
+    <Content Include="Staff\StaffLogin\StaffLogin.aspx" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Answer.cs" />
+    <Compile Include="Class\Answer.cs" />
     <Compile Include="Class\AppConstants.cs" />
+    <Compile Include="Class\Respondent.cs" />
     <Compile Include="DefaultPage\Default.aspx.cs">
       <DependentUpon>Default.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -98,26 +104,47 @@
     <Compile Include="RespondentRegister\RespondentRegister.aspx.designer.cs">
       <DependentUpon>RespondentRegister.aspx</DependentUpon>
     </Compile>
-    <Compile Include="StaffLogin\StaffLogin.aspx.cs">
-      <DependentUpon>StaffLogin.aspx</DependentUpon>
+    <Compile Include="Staff\Respondents\AllRespondents.aspx.cs">
+      <DependentUpon>AllRespondents.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="StaffLogin\StaffLogin.aspx.designer.cs">
-      <DependentUpon>StaffLogin.aspx</DependentUpon>
+    <Compile Include="Staff\Respondents\AllRespondents.aspx.designer.cs">
+      <DependentUpon>AllRespondents.aspx</DependentUpon>
     </Compile>
-    <Compile Include="StaffDashboard\StaffDashboard.aspx.cs">
+    <Compile Include="Staff\StaffDashboard\StaffDashboard.aspx.cs">
       <DependentUpon>StaffDashboard.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="StaffDashboard\StaffDashboard.aspx.designer.cs">
+    <Compile Include="Staff\StaffDashboard\StaffDashboard.aspx.designer.cs">
       <DependentUpon>StaffDashboard.aspx</DependentUpon>
     </Compile>
-    <Compile Include="SurveyApp\FinishSurvey.aspx.cs">
-      <DependentUpon>FinishSurvey.aspx</DependentUpon>
+    <Compile Include="Staff\StaffLogin\StaffLogin.aspx.cs">
+      <DependentUpon>StaffLogin.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
     </Compile>
-    <Compile Include="SurveyApp\FinishSurvey.aspx.designer.cs">
-      <DependentUpon>FinishSurvey.aspx</DependentUpon>
+    <Compile Include="Staff\StaffLogin\StaffLogin.aspx.designer.cs">
+      <DependentUpon>StaffLogin.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Staff\StaffSearch\StaffSearch.aspx.cs">
+      <DependentUpon>StaffSearch.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Staff\StaffSearch\StaffSearch.aspx.designer.cs">
+      <DependentUpon>StaffSearch.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="SurveyApp\AnswersConfirmation.aspx.cs">
+      <DependentUpon>AnswersConfirmation.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="SurveyApp\AnswersConfirmation.aspx.designer.cs">
+      <DependentUpon>AnswersConfirmation.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="SurveyApp\SurveyComplete.aspx.cs">
+      <DependentUpon>SurveyComplete.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="SurveyApp\SurveyComplete.aspx.designer.cs">
+      <DependentUpon>SurveyComplete.aspx</DependentUpon>
     </Compile>
     <Compile Include="SurveyApp\SurveyQuestion.aspx.cs">
       <DependentUpon>SurveyQuestion.aspx</DependentUpon>

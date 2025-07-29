@@ -17,12 +17,12 @@ namespace AITR_Survey
         protected void GetStartedButton_Click(object sender, EventArgs e)
         {
             HttpContext.Current.Session["currentQuestionID"] = "0";
-            Response.Redirect("../SurveyApp/SurveyQuestion.aspx");
+            Response.Redirect("~/SurveyApp/SurveyQuestion.aspx");
         }
 
         protected void StaffLoginButton_Click(object sender, EventArgs e)
         {
-            Response.Redirect("../StaffLogin/StaffLogin.aspx");
+            Response.Redirect("~/Staff/StaffLogin/StaffLogin.aspx");
         }
     }
 }

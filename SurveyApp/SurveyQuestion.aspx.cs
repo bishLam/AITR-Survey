@@ -5,6 +5,7 @@ using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Web;
@@ -24,7 +25,6 @@ namespace AITR_Survey
        
         protected void Page_Init(object sender, EventArgs e)
         {
-
             var sessionQueue = HttpContext.Current.Session["QuestionQueue"];
             var sessionHasQueue = HttpContext.Current.Session["HasQueue"];
             var answerDictionarySession = HttpContext.Current.Session["answerList"];
@@ -87,6 +87,12 @@ namespace AITR_Survey
 
                     int nextQuestionID;
                     nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
+                    if (nextQuestionID == 19) // this is the last question if this is the case
+                    {
+                        //redirect them to confirmation page
+                        Response.Redirect("~/SurveyApp/AnswersConfirmation.aspx");
+                    }
+                    ;
                     HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
                     DisplayQuestionAndOptions(nextQuestionID);
                     return;
@@ -109,7 +115,7 @@ namespace AITR_Survey
 
                     if (nextQuestionForTextInput == 0)
                     {
-                        Response.Redirect("../SurveyApp/FinishSurvey.aspx");
+                        Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
                         return;
                     }
                     HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
@@ -139,6 +145,30 @@ namespace AITR_Survey
                     Int32 ultimateQuestionID = 0;
                     List<ListItem> selectedOptions = cb.Items.Cast<ListItem>().Where(n => n.Selected).ToList();
 
+
+
+
+                    //first we need to validate the maximun or minimum selection
+                    Question currentQuestion = GetQuestionFromQuestionID(Int32.Parse(HttpContext.Current.Session["currentQuestionID"].ToString()));
+                    if (currentQuestion.MaxSelection > 0 && selectedOptions.Count > currentQuestion.MaxSelection)
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "CheckBoxValidator";
+                        validator.ErrorMessage = "Please select maximun of " + currentQuestion.MaxSelection + " options";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+
+                    else if (currentQuestion.MaxSelection < 0 && selectedOptions.Count < Math.Abs(currentQuestion.MaxSelection))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "CheckBoxValidator";
+                        validator.ErrorMessage = "Please select minimum of " + Math.Abs(currentQuestion.MaxSelection) + " options";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
 
                     //check if the selected options are less than 1
                     foreach (ListItem item in selectedOptions)
@@ -172,14 +202,6 @@ namespace AITR_Survey
 
 
                         Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
-                        //add the answer and question to the session
-                        Answer answer = new Answer();
-                        answer.QuestionID = questionID;
-                        answer.SingleChoiceAnswerID = selectedOptionID;
-                        answer.TextInputAnswer = null; //since this is a single choice question, the text input answer is null
-                        answers.Add(answer);
-                        HttpContext.Current.Session["answerList"] = answers;
-
                         int nextQuestionID;
                         nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
                         HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
@@ -201,6 +223,8 @@ namespace AITR_Survey
                                 nextQuestionIDsFromSelectedOptions.Add(nextQuestionIDFromOption);
                             }
                         }
+
+
 
                         if (nextQuestionIDsFromSelectedOptions.Count == 1)
                         {
@@ -305,15 +329,10 @@ namespace AITR_Survey
                             questionsQueue.Add(ultimateQuestionID); //add the ultimate question to the end of the queue
                             HttpContext.Current.Session["HasQueue"] = true; //set the hasQueue to true
                             hasQueue = true; //set the hasQueue to true
-                            HttpContext.Current.Session["QuestionQueue"] = questionsQueue; //store the que
-                                                                                           //stions queue in the session
+                            HttpContext.Current.Session["QuestionQueue"] = questionsQueue;
                             return;
                         }
-
-
                     }
-
-
                 }
 
             }
@@ -322,9 +341,7 @@ namespace AITR_Survey
 
         protected void DisplayQuestionAndOptions(Int32 questionID)
         {
-
             Question question = GetQuestionFromQuestionID(questionID);
-
             //now store the current value in the session and prompt them with the next question
             previousButton.Visible = true; //make the previous button visible
             Int32 currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
@@ -336,24 +353,60 @@ namespace AITR_Survey
 
         protected Int32 FindNextQuestionFromOptionID(Int32 optionID)
         {
-            string _connectionString = GetConnectionString();
-            int nextQuestionID = 0; //default value if not found
-            SqlConnection conn = new SqlConnection();
-            conn.ConnectionString = _connectionString;
-            conn.Open();
+            try
+            {
+                string _connectionString = GetConnectionString();
+                int nextQuestionID = 0; //default value if not found
+                SqlConnection conn = new SqlConnection();
+                conn.ConnectionString = _connectionString;
+                conn.Open();
 
-            //2.Prepare the consume instruction
-            SqlCommand questionCommand = new SqlCommand("SELECT * FROM MultipleChoiceOption WHERE MultipleChoiceOptionID =" + optionID, conn); //command to get the questions
+                //2.Prepare the consume instruction
+                SqlCommand questionCommand = new SqlCommand("SELECT * FROM MultipleChoiceOption WHERE MultipleChoiceOptionID =" + optionID, conn); //command to get the questions
 
-            //3. Consume
-            SqlDataReader reader = questionCommand.ExecuteReader();
-            reader.Read();
-            nextQuestionID = Int32.Parse(reader["NextQuestionID"].ToString());
-            conn.Close();
-            return nextQuestionID;   
+                //3. Consume
+                SqlDataReader reader = questionCommand.ExecuteReader();
+                reader.Read();
+                nextQuestionID = Int32.Parse(reader["NextQuestionID"].ToString());
+                conn.Close();
+                return nextQuestionID;
+            }
+
+            catch (InvalidCastException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return 0;
+            }
+
+            catch (SqlException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return 0;
+            }
+
+            catch (InvalidOperationException ex)
+            {
+
+                Response.Write("InvalidOperationException exception found. Error: " + ex.ToString());
+                return 0;
+            }
+
+            catch (IOException ex)
+            {
+
+                Response.Write("IOException exception found. Error: " + ex.ToString());
+                return 0;
+            }
+
+            catch (Exception ex)
+            {
+                Response.Write("Exception found. Error: " + ex.ToString());
+                return 0;
+            }
+ 
         }
 
-        protected string GetConnectionString()
+        public string GetConnectionString()
         {
             if (ConfigurationManager.ConnectionStrings["DevelopmentConnectionString"].ConnectionString.Equals("Dev"))
             {
@@ -366,44 +419,99 @@ namespace AITR_Survey
             }
         }
 
-        protected Question GetQuestionFromQuestionID(Int32 questionID)
+        public Question GetQuestionFromQuestionID(Int32 questionID)
         {
-            string _connectionString = GetConnectionString();
-            Question question = new Question();
-            SqlConnection conn = new SqlConnection();
-            conn.ConnectionString = _connectionString;
-            conn.Open();
-
-            SqlCommand sqlCommand = new SqlCommand("SELECT * FROM Question WHERE QuestionID =" + questionID, conn);
-            SqlDataReader reader = sqlCommand.ExecuteReader();
-
-            if (reader.Read())
+            Question emptyQuestion = new Question();
+            try
             {
-                question.QuestionID = Int32.Parse(reader["QuestionID"].ToString());
-                question.QuestionText = reader["QuestionText"].ToString();
-                question.NextQuestionForTextInput = reader["NextQuestionForTextInput"].ToString(); 
-                question.IsFirstQuestion = reader["isFirstQuestion"].ToString();
-                question.QuestionType = reader["QuestionType"].ToString();
-                question.HasBranch = reader["HasBranch"].ToString();
-                var maxAnswerSelection = reader["MaxAnswerSelection"];
-                //WRONG
-                if (DBNull.Value == null)
+                string _connectionString = GetConnectionString();
+                Question question = new Question();
+                SqlConnection conn = new SqlConnection();
+                conn.ConnectionString = _connectionString;
+                conn.Open();
+
+                SqlCommand sqlCommand = new SqlCommand("SELECT * FROM Question WHERE QuestionID =" + questionID, conn);
+                SqlDataReader reader = sqlCommand.ExecuteReader();
+
+                if (reader.Read())
                 {
-                    question.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
+                    question.QuestionID = Int32.Parse(reader["QuestionID"].ToString());
+                    question.QuestionText = reader["QuestionText"].ToString();
+                    question.NextQuestionForTextInput = reader["NextQuestionForTextInput"].ToString();
+                    question.IsFirstQuestion = reader["isFirstQuestion"].ToString();
+                    question.QuestionType = reader["QuestionType"].ToString();
+                    question.HasBranch = reader["HasBranch"].ToString();
+                    var maxAnswerSelection = reader["MaxAnswerSelection"];
+
+                    //WRONG
+                    if (maxAnswerSelection == DBNull.Value)
+                    {
+                        question.MaxSelection = 0;
+                    }
+                    else
+                    {
+                        question.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
+                    }
+
                 }
-                else
-                {
-                    question.MaxSelection = 0; //default value if not set
-                }
-                
+                conn.Close();
+                return question;
             }
-            conn.Close();
-            return question;
+
+            catch (InvalidCastException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return emptyQuestion;
+            }
+
+            catch (SqlException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return emptyQuestion;
+            }
+
+            catch (InvalidOperationException ex)
+            {
+
+                Response.Write("InvalidOperationException exception found. Error: " + ex.ToString());
+                return emptyQuestion;
+            }
+
+            catch (IOException ex)
+            {
+
+                Response.Write("IOException exception found. Error: " + ex.ToString());
+                return emptyQuestion;
+            }
+
+            catch (Exception ex)
+            {
+                Response.Write("Exception found. Error: " + ex.ToString());
+                return emptyQuestion;
+            }
         }
 
         protected void SetQuestionTextInAFormat(Question question)
         {
-            QuestionLabel.Text = "(Question " + question.QuestionID + ")  " + question.QuestionText; //display the question text
+            Int32 maximumSelection = question.MaxSelection;
+
+            if(maximumSelection == 1 || maximumSelection == 0)
+            {
+                QuestionLabel.Text = "(Question " + question.QuestionID + ")  " + question.QuestionText; //display the question text
+            }
+            else if(maximumSelection < 0)
+            {
+                QuestionLabel.Text = "(Question " + question.QuestionID + ")  " + question.QuestionText + "     (minimum selection: " + Math.Abs(maximumSelection) + " )"; //display the question text with minimmum selection option
+            }
+            else if (maximumSelection > 1)
+            {
+                QuestionLabel.Text = "(Question " + question.QuestionID + ")  " + question.QuestionText + "     (maximum selection: " + maximumSelection + ")"; //display the question text with minimmum selection option
+            }
+            else
+            {
+                QuestionLabel.Text = "Something unexpected happened. Please try again";
+                return;
+            }  
         }
         protected List<Option> GetAllOptionsFromQuestionID(int questionID)
         {
@@ -429,14 +537,35 @@ namespace AITR_Survey
                 }
                 conn.Close();
             }
-            catch(SqlException ex)
+            catch (InvalidCastException ex)
             {
-                Label label = new Label();
-                label.ID = "ErrorMessage";
-                label.Text = "An error occured: " + ex.Message;
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
             }
 
-            return listOfOptions;
+            catch (SqlException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+
+            }
+
+            catch (InvalidOperationException ex)
+            {
+
+                Response.Write("InvalidOperationException exception found. Error: " + ex.ToString());
+            }
+
+            catch (IOException ex)
+            {
+
+                Response.Write("IOException exception found. Error: " + ex.ToString());
+            }
+
+            catch (Exception ex)
+            {
+                Response.Write("Exception found. Error: " + ex.ToString());
+            }
+
+              return listOfOptions;
         }
 
         protected void SetUpListOfOptions(List<Option> options, Question question)
@@ -529,7 +658,7 @@ namespace AITR_Survey
 
             else if(questionType == AppConstants.QuestionTypeFinish || question.NextQuestionForTextInput == "0")
             {
-                Response.Redirect("../SurveyApp/FinishSurvey.aspx");
+                Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
             }
                 answerPlaceholder.Controls.Add(new LiteralControl("<br />"));
         }
@@ -599,13 +728,39 @@ namespace AITR_Survey
                 SetUpListOfOptions(listOfOptions, firstQuestion);
             }
 
+            catch (InvalidCastException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return;
+            }
+
+            catch (SqlException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return;
+            }
+
+            catch (InvalidOperationException ex)
+            {
+
+                Response.Write("InvalidOperationException exception found. Error: " + ex.ToString());
+                return;
+            }
+
+            catch (IOException ex)
+            {
+
+                Response.Write("IOException exception found. Error: " + ex.ToString());
+                return;
+            }
+
             catch (Exception ex)
             {
                 Response.Redirect("../SurveyApp/SurveyApp.aspx");
                 Label label = new Label();
                 label.Text = "Something went wrong. Please see the msg below: " + ex.Message;
                 answerPlaceholder.Controls.Clear();
-                answerPlaceholder.Controls.Add(label);               
+                answerPlaceholder.Controls.Add(label);
             }
         }
     }

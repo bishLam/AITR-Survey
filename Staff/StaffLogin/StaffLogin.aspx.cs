@@ -16,7 +16,7 @@ namespace AITR_Survey
 
         protected void LoginButton_Click(object sender, EventArgs e)
         {
-            Response.Redirect("../StaffDashboard/StaffDashboard.aspx");
+            Response.Redirect("~/Staff/StaffDashboard/StaffDashboard.aspx");
         }
     }
 }

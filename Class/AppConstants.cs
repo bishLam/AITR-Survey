@@ -13,5 +13,9 @@ namespace AITR_Survey
         public static String QuestionTypeTextInput = "Text Input";
         public static String QuestionTypeDate = "Date";
         public static String QuestionTypeFinish = "Finish";
+
+        //links to redirect users between pages
+        public static String redirectToViewAllRespondents = "~/Staff/Respondents/AllRespondents.aspx";
+        public static String redirectToSearchAllRespondents = "~/Staff/StaffSearch/StaffSearch.aspx";
     }
 }

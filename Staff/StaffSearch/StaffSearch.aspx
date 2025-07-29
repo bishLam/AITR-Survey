@@ -1,11 +1,11 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="StaffDashboard.aspx.cs" Inherits="AITR_Survey.StaffDashboard" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="StaffSearch.aspx.cs" Inherits="AITR_Survey.StaffDashboard" %>
 
 <!DOCTYPE html>
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head runat="server">
     <title>Staff Search</title>
-    <link href="../staffdashboard/StaffDashboard.css" rel="stylesheet" />
+    <link href="~/Staff/StaffSearch/StaffSearch.css" rel="stylesheet" />
 </head>
 <body>
     <form id="form1" class="formContainer" runat="server">
