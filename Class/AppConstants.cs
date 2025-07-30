@@ -11,8 +11,11 @@ namespace AITR_Survey
         public static String QuestionTypeSingleChoice = "Single Choice";
         public static String QuestionTypeMultipleChoice = "Multiple Choice";
         public static String QuestionTypeTextInput = "Text Input";
+        public static String QuestionTypeTextInputEmail = "Text Input - Email";
         public static String QuestionTypeDate = "Date";
         public static String QuestionTypeFinish = "Finish";
+
+        public static String EmailValidatorRegex = "^([\\w\\.\\-]+)@([\\w\\-]+)((\\.(\\w){2,3})+)$";
 
         //links to redirect users between pages
         public static String redirectToViewAllRespondents = "~/Staff/Respondents/AllRespondents.aspx";

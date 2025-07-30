@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Web;
 using System.Web.Caching;
 using System.Web.UI;
@@ -68,8 +69,9 @@ namespace AITR_Survey
                 CheckBoxList cb = answerPlaceholder.FindControl("CheckBoxList") as CheckBoxList;
                 TextBox textbox = answerPlaceholder.FindControl("TextBox") as TextBox;
                 TextBox dateTextbox = answerPlaceholder.FindControl("DateTextBox") as TextBox;
+                TextBox emailTextbox = answerPlaceholder.FindControl("TextBoxEmail") as TextBox;
 
-                if (rbl != null && cb == null && textbox == null && dateTextbox == null)
+                if (rbl != null && cb == null && textbox == null && dateTextbox == null && emailTextbox == null)
                 {
                    Int32 selectedOptionID =  Int32.Parse(rbl.SelectedItem.Value);
 
@@ -98,7 +100,7 @@ namespace AITR_Survey
                     return;
                 }
 
-                else if(rbl == null && cb == null && textbox != null && dateTextbox == null)
+                else if(rbl == null && cb == null && textbox != null && dateTextbox == null && emailTextbox == null)
                 {
                     string tbxText = textbox.Text;
 
@@ -123,7 +125,7 @@ namespace AITR_Survey
                     return;
                 }
 
-                else if (dateTextbox != null && rbl == null && cb == null && textbox == null)
+                else if (dateTextbox != null && rbl == null && cb == null && textbox == null && emailTextbox == null)
                 {
                     Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
                     //add the answer and question to the session
@@ -139,7 +141,31 @@ namespace AITR_Survey
                     return;
                 }
 
-                else if (rbl == null && cb != null && textbox == null && dateTextbox == null)
+                //in case of email
+                else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox != null)
+                {
+                    string tbxText = emailTextbox.Text;
+                    //add the answer and question to the session
+                    var questionID = HttpContext.Current.Session["currentQuestionID"];
+
+                    Answer answer = new Answer();
+                    answer.QuestionID = Int32.Parse(questionID.ToString());
+                    answer.SingleChoiceAnswerID = null;
+                    answer.TextInputAnswer = tbxText;
+                    answers.Add(answer);
+                    HttpContext.Current.Session["answerList"] = answers;
+
+                    if (nextQuestionForTextInput == 0)
+                    {
+                        Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
+                        return;
+                    }
+                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
+                    DisplayQuestionAndOptions(nextQuestionForTextInput);
+                    return;
+                }
+
+                else if (rbl == null && cb != null && textbox == null && dateTextbox == null && emailTextbox == null)
                 {
                     //loop through all the controls in the placeholder
                     Int32 ultimateQuestionID = 0;
@@ -592,6 +618,7 @@ namespace AITR_Survey
                 RequiredFieldValidator validator = new RequiredFieldValidator();
                 validator.ID = "validator";
                 validator.ControlToValidate = "RadioButtonList";
+                validator.Display = ValidatorDisplay.Dynamic;
                 validator.ErrorMessage = "Please select one option";
                 answerPlaceholder.Controls.Add(validator);
             }
@@ -613,6 +640,7 @@ namespace AITR_Survey
 
                 CustomValidator validator = new CustomValidator();
                 validator.ID = "validator";
+                validator.Display = ValidatorDisplay.Dynamic;
                 //validator.ErrorMessage = "Please select at least one option";
                 validator.ServerValidate += new ServerValidateEventHandler(ValidateCheckboxList);
 
@@ -637,6 +665,7 @@ namespace AITR_Survey
                 validator.ID = "validator";
                 validator.ControlToValidate = "TextBox";
                 validator.ErrorMessage = "Textbox cannot be empty";
+                validator.Display = ValidatorDisplay.Dynamic;
                 answerPlaceholder.Controls.Add(validator);
             }
 
@@ -653,12 +682,41 @@ namespace AITR_Survey
                 validator.ID = "DateValidator";
                 validator.ControlToValidate = "DateTextBox";
                 validator.ErrorMessage = "Please select a date";
+                validator.Display = ValidatorDisplay.Dynamic;
                 answerPlaceholder.Controls.Add(validator);
             }
 
             else if(questionType == AppConstants.QuestionTypeFinish || question.NextQuestionForTextInput == "0")
             {
                 Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
+            }
+
+            else if(questionType == AppConstants.QuestionTypeTextInputEmail)
+            {
+                //add a text box to the placeholder
+                TextBox textBox = new TextBox();
+                textBox.ID = "TextBoxEmail";
+                textBox.TextMode = TextBoxMode.Email;
+                //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
+                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+
+                //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
+                answerPlaceholder.Controls.Add(textBox);
+
+                RequiredFieldValidator validator = new RequiredFieldValidator();
+                validator.ID = "validator";
+                validator.ControlToValidate = "TextBoxEmail";
+                validator.ErrorMessage = "Email cannot be empty";
+                validator.Display = ValidatorDisplay.Dynamic;
+                answerPlaceholder.Controls.Add(validator);
+
+                RegularExpressionValidator regularExpressionValidator = new RegularExpressionValidator();
+                regularExpressionValidator.ID = "validateEmail";
+                regularExpressionValidator.ControlToValidate = "TextBoxEmail";
+                regularExpressionValidator.ErrorMessage = "Please enter a valid email";
+                regularExpressionValidator.ValidationExpression = AppConstants.EmailValidatorRegex;
+                regularExpressionValidator.Display = ValidatorDisplay.Dynamic;
+                answerPlaceholder.Controls.Add(regularExpressionValidator);
             }
                 answerPlaceholder.Controls.Add(new LiteralControl("<br />"));
         }
