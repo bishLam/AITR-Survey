@@ -20,5 +20,7 @@ namespace AITR_Survey
         //links to redirect users between pages
         public static String redirectToViewAllRespondents = "~/Staff/Respondents/AllRespondents.aspx";
         public static String redirectToSearchAllRespondents = "~/Staff/StaffSearch/StaffSearch.aspx";
+        public static String redirectToRegisterRespondents = "~/RespondentRegister/RespondentRegister.aspx";
+        public static String redirectToAnswerConfirmation = "~/SurveyApp/AnswersConfirmation.aspx";
     }
 }

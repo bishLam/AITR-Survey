@@ -18,7 +18,7 @@
         <asp:PlaceHolder ID="answerPlaceholder" runat="server"></asp:PlaceHolder>
         <br />
         <asp:Button ID="previousButton" runat="server" Text="Previous Question" />
-        <asp:Button class="" ID="nextButton" runat="server" Text="Next Question" OnClick="nextButton_Click" />
+        <asp:Button class="nextQuestionButton" ID="nextButton" runat="server" Text="Next Question" OnClick="nextButton_Click" />
     </form>
 </body>
 </html>

@@ -265,10 +265,58 @@ namespace AITR_Survey.SurveyApp
                 SqlConnection conn = new SqlConnection();
                 conn.ConnectionString = _connectionString;
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("INSERT INTO Respondent (Date, IPAddress) VALUES (@Date, @IPAddress); SELECT SCOPE_IDENTITY();", conn);
+
+                var firstname = HttpContext.Current.Session["respondentFirstName"] as String;
+                var lastname = HttpContext.Current.Session["respondentLastName"] as String;
+                var contactNumber = HttpContext.Current.Session["respondentContactNumber"] as String;
+
+                String sFirstName;
+                String sLastName;
+                String sContactNumber;
+                DateTime dDOB;
+                Boolean isRegistered;
+
+
+                if (firstname != null && lastname != null && contactNumber != null )
+                {
+                    //this means that the user opted to register in the program
+                    sFirstName = firstname;
+                    sLastName = lastname;
+                    sContactNumber = contactNumber;
+
+
+                    if (DateTime.TryParse(HttpContext.Current.Session["respondentDOB"] as String, out dDOB))
+                    {
+                        dDOB = DateTime.Parse(HttpContext.Current.Session["respondentDOB"] as String);
+                        isRegistered = true;
+                    }
+                    else
+                    {
+
+                        //show a validation message here
+                        return;
+                    }
+                }
+                else{
+                    //this means they did not opted to register into the program
+                    sFirstName = "";
+                    sLastName = "";
+                    sContactNumber = "";
+                    dDOB = DateTime.Now;
+                    isRegistered = false;
+                }
+
+
+
+                SqlCommand cmd = new SqlCommand("INSERT INTO Respondent (Date, IPAddress, Firstname, Lastname, ContactNumber, DOB, isRegistered) VALUES (@Date, @IPAddress, @Firstname, @Lastname, @ContactNumber, @DOB, @isRegistered); SELECT SCOPE_IDENTITY();", conn);
                 cmd.Parameters.AddWithValue("@IPAddress", ipAddress);
                 cmd.Parameters.AddWithValue("@Date", DateTime.Now);
-                
+                cmd.Parameters.AddWithValue("@Firstname", sFirstName);
+                cmd.Parameters.AddWithValue("@Lastname", sLastName);
+                cmd.Parameters.AddWithValue("@ContactNumber", sContactNumber);
+                cmd.Parameters.AddWithValue("@DOB", dDOB);
+                cmd.Parameters.AddWithValue("@isRegistered", isRegistered);
+
                 Object respondentId = cmd.ExecuteScalar();
                 int insertedId = Convert.ToInt32(respondentId);
                 HttpContext.Current.Session["respondentID"] = insertedId;

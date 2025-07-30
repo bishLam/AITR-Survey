@@ -28,8 +28,10 @@
         </div>
 
         <asp:Button class="submitButton" ID="LoginButton" runat="server" Text="Search" />
-        
-
+        <br />
+        <br />
+        <br />
+        <asp:GridView ID="GridView1" runat="server"></asp:GridView>
         <asp:DataList ID="answerDataList" runat="server"></asp:DataList>
 
     </form>

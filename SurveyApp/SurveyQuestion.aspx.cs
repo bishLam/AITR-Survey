@@ -132,7 +132,7 @@ namespace AITR_Survey
                     Answer answer = new Answer();
                     answer.QuestionID = questionID;
                     answer.SingleChoiceAnswerID = null;
-                    answer.TextInputAnswer = dateTextbox.Text; //since this is a single choice question, the text input answer is null
+                    answer.TextInputAnswer = dateTextbox.Text;
                     answers.Add(answer);
                     HttpContext.Current.Session["answerList"] = answers;
 
@@ -372,6 +372,11 @@ namespace AITR_Survey
             previousButton.Visible = true; //make the previous button visible
             Int32 currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
 
+            if(questionID == 10)
+            {
+                Response.Redirect(AppConstants.redirectToRegisterRespondents);
+                return;
+            }
             SetQuestionTextInAFormat(question);
             var listOfOptions = GetAllOptionsFromQuestionID(question.QuestionID);
             SetUpListOfOptions(listOfOptions, question);
