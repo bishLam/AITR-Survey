@@ -14,12 +14,13 @@ namespace AITR_Survey.Class
         private Int32 respondentID;
         private DateTime dateResponded;
         private String iPAddress;
+        private Boolean isRegistered;
 
         public Respondent()
         {
         }
 
-        public Respondent(string firstName, string lastName, string contactNumber, DateTime dOB, int respondentID, DateTime dateResponded, string iPAddress)
+        public Respondent(string firstName, string lastName, string contactNumber, DateTime dOB, int respondentID, DateTime dateResponded, string iPAddress, bool isRegistered)
         {
             this.firstName = firstName;
             this.lastName = lastName;
@@ -28,6 +29,7 @@ namespace AITR_Survey.Class
             this.respondentID = respondentID;
             this.dateResponded = dateResponded;
             this.iPAddress = iPAddress;
+            this.isRegistered = isRegistered;
         }
 
         public string FirstName { get => firstName; set => firstName = value; }
@@ -37,5 +39,6 @@ namespace AITR_Survey.Class
         public int RespondentID { get => respondentID; set => respondentID = value; }
         public DateTime DateResponded { get => dateResponded; set => dateResponded = value; }
         public string IPAddress { get => iPAddress; set => iPAddress = value; }
+        public bool IsRegistered { get => isRegistered; set => isRegistered = value; }
     }
 }

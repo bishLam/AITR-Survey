@@ -70,15 +70,17 @@ namespace AITR_Survey
                 TextBox textbox = answerPlaceholder.FindControl("TextBox") as TextBox;
                 TextBox dateTextbox = answerPlaceholder.FindControl("DateTextBox") as TextBox;
                 TextBox emailTextbox = answerPlaceholder.FindControl("TextBoxEmail") as TextBox;
+                TextBox suburbTextbox = answerPlaceholder.FindControl("TextBoxSuburb") as TextBox;
+                TextBox postCodeTextbox = answerPlaceholder.FindControl("TextBoxPostCode") as TextBox;
 
-                if (rbl != null && cb == null && textbox == null && dateTextbox == null && emailTextbox == null)
+                if (rbl != null && cb == null && textbox == null && dateTextbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
-                   Int32 selectedOptionID =  Int32.Parse(rbl.SelectedItem.Value);
+                    Int32 selectedOptionID = Int32.Parse(rbl.SelectedItem.Value);
 
 
                     //add the answer and question to the session
                     Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
-                    
+
 
                     Answer answer = new Answer();
                     answer.QuestionID = questionID;
@@ -100,7 +102,7 @@ namespace AITR_Survey
                     return;
                 }
 
-                else if(rbl == null && cb == null && textbox != null && dateTextbox == null && emailTextbox == null)
+                else if (rbl == null && cb == null && textbox != null && dateTextbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
                     string tbxText = textbox.Text;
 
@@ -125,7 +127,7 @@ namespace AITR_Survey
                     return;
                 }
 
-                else if (dateTextbox != null && rbl == null && cb == null && textbox == null && emailTextbox == null)
+                else if (dateTextbox != null && rbl == null && cb == null && textbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
                     Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
                     //add the answer and question to the session
@@ -142,7 +144,7 @@ namespace AITR_Survey
                 }
 
                 //in case of email
-                else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox != null)
+                else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox != null && suburbTextbox == null && postCodeTextbox == null)
                 {
                     string tbxText = emailTextbox.Text;
                     //add the answer and question to the session
@@ -165,17 +167,82 @@ namespace AITR_Survey
                     return;
                 }
 
-                else if (rbl == null && cb != null && textbox == null && dateTextbox == null && emailTextbox == null)
+                // in case of suburb
+                else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox == null && suburbTextbox != null && postCodeTextbox == null)
                 {
-                    //loop through all the controls in the placeholder
+                    string tbxText = suburbTextbox.Text;
+
+                    if (tbxText.Any(char.IsDigit))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "SuburbValidator";
+                        validator.ErrorMessage = "Invalid Suburb";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+                    //add the answer and question to the session
+                    var questionID = HttpContext.Current.Session["currentQuestionID"];
+                    Answer answer = new Answer();
+                    answer.QuestionID = Int32.Parse(questionID.ToString());
+                    answer.SingleChoiceAnswerID = null;
+                    answer.TextInputAnswer = tbxText;
+                    answers.Add(answer);
+                    HttpContext.Current.Session["answerList"] = answers;
+                    if (nextQuestionForTextInput == 0)
+                    {
+                        Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
+                        return;
+                    }
+                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
+                    DisplayQuestionAndOptions(nextQuestionForTextInput);
+                    return;
+                }
+
+
+                //in case of postcode
+                else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox != null)
+                {
+                    string tbxText = postCodeTextbox.Text;
+
+                    if (tbxText.Any(char.IsLetter))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "SuburbValidator";
+                        validator.ErrorMessage = "Invalid PostCode";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+                    //add the answer and question to the session
+                    var questionID = HttpContext.Current.Session["currentQuestionID"];
+                    Answer answer = new Answer();
+                    answer.QuestionID = Int32.Parse(questionID.ToString());
+                    answer.SingleChoiceAnswerID = null;
+                    answer.TextInputAnswer = tbxText;
+                    answers.Add(answer);
+                    HttpContext.Current.Session["answerList"] = answers;
+
+                    //next question for text input is 0, meaning there is no next question in queue and it is end of the survey
+                    if (nextQuestionForTextInput == 0)
+                    {
+                        Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
+                        return;
+                    }
+                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
+                    DisplayQuestionAndOptions(nextQuestionForTextInput);
+                    return;
+                }
+
+                else if (rbl == null && cb != null && textbox == null && dateTextbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
+                {
                     Int32 ultimateQuestionID = 0;
                     List<ListItem> selectedOptions = cb.Items.Cast<ListItem>().Where(n => n.Selected).ToList();
 
-
-
-
                     //first we need to validate the maximun or minimum selection
                     Question currentQuestion = GetQuestionFromQuestionID(Int32.Parse(HttpContext.Current.Session["currentQuestionID"].ToString()));
+
+                    //In case user selects more than maximum allowed options
                     if (currentQuestion.MaxSelection > 0 && selectedOptions.Count > currentQuestion.MaxSelection)
                     {
                         CustomValidator validator = new CustomValidator();
@@ -186,6 +253,7 @@ namespace AITR_Survey
                         return;
                     }
 
+                    //In case user selects less than minimum options
                     else if (currentQuestion.MaxSelection < 0 && selectedOptions.Count < Math.Abs(currentQuestion.MaxSelection))
                     {
                         CustomValidator validator = new CustomValidator();
@@ -723,7 +791,48 @@ namespace AITR_Survey
                 regularExpressionValidator.Display = ValidatorDisplay.Dynamic;
                 answerPlaceholder.Controls.Add(regularExpressionValidator);
             }
-                answerPlaceholder.Controls.Add(new LiteralControl("<br />"));
+
+
+            else if (questionType == AppConstants.QuestionTypeTextInputSuburb)
+            {
+                //add a text box to the placeholder
+                TextBox textBox = new TextBox();
+                textBox.ID = "TextBoxSuburb";
+                //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
+                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+
+                //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
+                answerPlaceholder.Controls.Add(textBox);
+
+                RequiredFieldValidator validator = new RequiredFieldValidator();
+                validator.ID = "validator";
+                validator.ControlToValidate = "TextBoxSuburb";
+                validator.ErrorMessage = "Suburb cannot be empty";
+                validator.Display = ValidatorDisplay.Dynamic;
+                answerPlaceholder.Controls.Add(validator);
+            }
+
+
+            else if (questionType == AppConstants.QuestionTypeTextInputPostCode)
+            {
+                //add a text box to the placeholder
+                TextBox textBox = new TextBox();
+                textBox.ID = "TextBoxPostCode";
+                textBox.TextMode = TextBoxMode.Number; //set the text box to number mode for post code
+                //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
+                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+
+                //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
+                answerPlaceholder.Controls.Add(textBox);
+
+                RequiredFieldValidator validator = new RequiredFieldValidator();
+                validator.ID = "validator";
+                validator.ControlToValidate = "TextBoxPostCode";
+                validator.ErrorMessage = "PostCode cannot be empty";
+                validator.Display = ValidatorDisplay.Dynamic;
+                answerPlaceholder.Controls.Add(validator);
+            }
+            answerPlaceholder.Controls.Add(new LiteralControl("<br />"));
         }
 
         protected void ValidateCheckboxList(Object o, ServerValidateEventArgs e)

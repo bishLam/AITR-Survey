@@ -15,19 +15,19 @@
             <asp:TextBox ID="firstNameTextBox" runat="server" MaxLength="200" />
         </div>
         <div class="searchContainer">
-            <asp:Label ID="banksUsedSearchLabel" runat="server" Text="Banks Used"></asp:Label>
-            <asp:TextBox ID="banksUsedSearchTextBox" runat="server" MaxLength="200" />
+            <asp:Label ID="banksUsedSearchLabel" runat="server" Text="Search by Banks Used"></asp:Label>
+            <asp:CheckBoxList ID="banksUsedCheckBoxList" runat="server"></asp:CheckBoxList>
         </div>
         <div class="searchContainer">
             <asp:Label ID="banksServiceSearchLabel" runat="server" Text="Banks Service Used"></asp:Label>
-            <asp:TextBox ID="banksServiceSearchTextBox" runat="server" MaxLength="200" />
+           <asp:CheckBoxList ID="bankServicesUsedCheckBoxList" runat="server"></asp:CheckBoxList>
         </div>
         <div class="searchContainer">
             <asp:Label ID="newpaperSearchLabel" runat="server" Text="NewsPaper Read"></asp:Label>
-            <asp:TextBox ID="newpaperSearchTextBox" runat="server" MaxLength="200" />
+            <asp:CheckBoxList ID="newspaperReadCheckBoxList" runat="server"></asp:CheckBoxList>
         </div>
 
-        <asp:Button class="submitButton" ID="LoginButton" runat="server" Text="Search" />
+        <asp:Button class="submitButton" ID="LoginButton" runat="server" Text="Search" OnClick="SearchButton_Click" />
         <br />
         <br />
         <br />

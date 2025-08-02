@@ -302,7 +302,8 @@ namespace AITR_Survey.SurveyApp
                     sFirstName = "";
                     sLastName = "";
                     sContactNumber = "";
-                    dDOB = DateTime.Now;
+                    DateTime defaultDT = new DateTime(1000, 1, 1);
+                    dDOB = defaultDT;
                     isRegistered = false;
                 }
 
@@ -314,7 +315,16 @@ namespace AITR_Survey.SurveyApp
                 cmd.Parameters.AddWithValue("@Firstname", sFirstName);
                 cmd.Parameters.AddWithValue("@Lastname", sLastName);
                 cmd.Parameters.AddWithValue("@ContactNumber", sContactNumber);
-                cmd.Parameters.AddWithValue("@DOB", dDOB);
+
+                DateTime dt = new DateTime(1000, 1, 1);
+                if (dDOB == dt)
+                {
+                    cmd.Parameters.AddWithValue("@DOB", DBNull.Value);
+                }
+                else
+                {
+                    cmd.Parameters.AddWithValue("@DOB", dDOB);
+                }               
                 cmd.Parameters.AddWithValue("@isRegistered", isRegistered);
 
                 Object respondentId = cmd.ExecuteScalar();

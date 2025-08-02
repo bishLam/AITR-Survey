@@ -60,13 +60,13 @@ namespace AITR_Survey
         protected global::System.Web.UI.WebControls.Label banksUsedSearchLabel;
 
         /// <summary>
-        /// banksUsedSearchTextBox control.
+        /// banksUsedCheckBoxList control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox banksUsedSearchTextBox;
+        protected global::System.Web.UI.WebControls.CheckBoxList banksUsedCheckBoxList;
 
         /// <summary>
         /// banksServiceSearchLabel control.
@@ -78,13 +78,13 @@ namespace AITR_Survey
         protected global::System.Web.UI.WebControls.Label banksServiceSearchLabel;
 
         /// <summary>
-        /// banksServiceSearchTextBox control.
+        /// bankServicesUsedCheckBoxList control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox banksServiceSearchTextBox;
+        protected global::System.Web.UI.WebControls.CheckBoxList bankServicesUsedCheckBoxList;
 
         /// <summary>
         /// newpaperSearchLabel control.
@@ -96,13 +96,13 @@ namespace AITR_Survey
         protected global::System.Web.UI.WebControls.Label newpaperSearchLabel;
 
         /// <summary>
-        /// newpaperSearchTextBox control.
+        /// newspaperReadCheckBoxList control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox newpaperSearchTextBox;
+        protected global::System.Web.UI.WebControls.CheckBoxList newspaperReadCheckBoxList;
 
         /// <summary>
         /// LoginButton control.

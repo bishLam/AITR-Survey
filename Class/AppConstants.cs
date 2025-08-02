@@ -12,6 +12,8 @@ namespace AITR_Survey
         public static String QuestionTypeMultipleChoice = "Multiple Choice";
         public static String QuestionTypeTextInput = "Text Input";
         public static String QuestionTypeTextInputEmail = "Text Input - Email";
+        public static String QuestionTypeTextInputSuburb = "Text Input - Suburb";
+        public static String QuestionTypeTextInputPostCode = "Text Input - PostCode";
         public static String QuestionTypeDate = "Date";
         public static String QuestionTypeFinish = "Finish";
 
@@ -22,5 +24,12 @@ namespace AITR_Survey
         public static String redirectToSearchAllRespondents = "~/Staff/StaffSearch/StaffSearch.aspx";
         public static String redirectToRegisterRespondents = "~/RespondentRegister/RespondentRegister.aspx";
         public static String redirectToAnswerConfirmation = "~/SurveyApp/AnswersConfirmation.aspx";
+        public static String redirectToStaffDashboard = "~/Staff/StaffDashboard/StaffDashboard.aspx";
+
+
+        //question ids for getting options for staff search
+        public static int QuestionIDForStaffSearchBank = 7;
+        public static int QuestionIDForStaffSearchBankService = 15;
+        public static int QuestionIDForStaffSearchNewsPaper = 8;
     }
 }
