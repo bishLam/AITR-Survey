@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Web;
-using System.Web.Caching;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 
@@ -19,17 +14,16 @@ namespace AITR_Survey
     public partial class SurveyQuestion : System.Web.UI.Page
     {
         private int nextQuestionForTextInput;
-        private String CurrentPlaceholderType;
         private Boolean hasQueue = false;
         private List<Int32> questionsQueue = new List<Int32>();
         private List<Answer> answers = new List<Answer>();
-       
+
         protected void Page_Init(object sender, EventArgs e)
         {
             var sessionQueue = HttpContext.Current.Session["QuestionQueue"];
             var sessionHasQueue = HttpContext.Current.Session["HasQueue"];
             var answerDictionarySession = HttpContext.Current.Session["answerList"];
-            if(answerDictionarySession != null)
+            if (answerDictionarySession != null)
             {
                 answers = (List<Answer>)HttpContext.Current.Session["answerList"];
             }
@@ -38,7 +32,7 @@ namespace AITR_Survey
                 questionsQueue = (List<Int32>)sessionQueue;
                 hasQueue = (Boolean)sessionHasQueue;
             }
-            
+
         }
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -50,21 +44,32 @@ namespace AITR_Survey
             }
             else
             {
+                //since the placeholders and everything is lost during postback, this is essential;
                 Int32 currentQuestionID = 0;
                 currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
-                DisplayQuestionAndOptions(currentQuestionID);             
+                DisplayQuestionAndOptions(currentQuestionID);
             }
         }
 
+        /// <summary>
+        /// Handles the click event for the "Next" button in the survey application.
+        /// </summary>
+        /// <remarks>This method processes the user's response to the current survey question, validates
+        /// the input,  and determines the next question to display. It supports multiple input types, including radio
+        /// buttons,  checkboxes, text boxes, and specialized text inputs (e.g., date, email, suburb, and postcode). 
+        /// Depending on the user's input and the survey flow, the method may redirect to the confirmation page  or
+        /// queue additional questions for display.</remarks>
+        /// <param name="sender">The source of the event, typically the "Next" button.</param>
+        /// <param name="e">An <see cref="EventArgs"/> object that contains the event data.</param>
         protected void nextButton_Click(object sender, EventArgs e)
         {
-            //1. Get the selected option
+
+
+            //Step 1 would be to find the controls in our placeholder and display it in the screen
             if (answerPlaceholder.Controls.Count > 0) //meaning there is at least one control
             {
 
-
-                //check if the current placeholder type is radio button, text box or check box
-
+                // The following will try to access relevant placeholder controls. Then we can check if any placeholder is null or not to retrieve the user input
                 RadioButtonList rbl = answerPlaceholder.FindControl("RadioButtonList") as RadioButtonList;
                 CheckBoxList cb = answerPlaceholder.FindControl("CheckBoxList") as CheckBoxList;
                 TextBox textbox = answerPlaceholder.FindControl("TextBox") as TextBox;
@@ -73,15 +78,30 @@ namespace AITR_Survey
                 TextBox suburbTextbox = answerPlaceholder.FindControl("TextBoxSuburb") as TextBox;
                 TextBox postCodeTextbox = answerPlaceholder.FindControl("TextBoxPostCode") as TextBox;
 
+                // In case when radio button list is not null and other controls are. This applies to single choice questions in the database
                 if (rbl != null && cb == null && textbox == null && dateTextbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
+                    // we get the only selected value in the radio button list, get the current question ID from the session
+
+
+
+
+                    //we need to have the validators here to validate the user input 
+
+                    if (rbl.SelectedItem == null)
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "RadioButtonListValidator";
+                        validator.ErrorMessage = "Please select an option";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+
                     Int32 selectedOptionID = Int32.Parse(rbl.SelectedItem.Value);
-
-
-                    //add the answer and question to the session
                     Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
 
-
+                    // we will initialise the Answer object to store this answer and questions so that we can store this in the session to later push it in the database
                     Answer answer = new Answer();
                     answer.QuestionID = questionID;
                     answer.SingleChoiceAnswerID = selectedOptionID;
@@ -89,27 +109,42 @@ namespace AITR_Survey
                     answers.Add(answer);
                     HttpContext.Current.Session["answerList"] = answers;
 
+                    //Now from the selected answer, we try to find the next question that will follow the question
                     int nextQuestionID;
                     nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
                     if (nextQuestionID == 19) // this is the last question if this is the case
                     {
-                        //redirect them to confirmation page
+                        //redirect them to confirmation page instead
                         Response.Redirect("~/SurveyApp/AnswersConfirmation.aspx");
                     }
-                    ;
+
+                    //we store this next question as current question in the session so our page load after postback will be able to get this question ID
                     HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
                     DisplayQuestionAndOptions(nextQuestionID);
                     return;
                 }
 
+                // In case when normal text box is not null and other controls are. This applies to text boxes type in the db which can accept anything as the input
                 else if (rbl == null && cb == null && textbox != null && dateTextbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
-                    string tbxText = textbox.Text;
 
+                    //we need to have the validators here to validate the user input 
+                    // Validate that the text box is not empty
+                    if (string.IsNullOrWhiteSpace(textbox.Text))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "TextBoxValidator";
+                        validator.ErrorMessage = "Textbox cannot be empty";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
 
-                    //add the answer and question to the session
+                    string tbxText = textbox.Text; //get the user input 
+                    //get the question ID from the session
                     var questionID = HttpContext.Current.Session["currentQuestionID"];
 
+                    //intialise answer object and store the current answer in the session
                     Answer answer = new Answer();
                     answer.QuestionID = Int32.Parse(questionID.ToString());
                     answer.SingleChoiceAnswerID = null;
@@ -117,18 +152,50 @@ namespace AITR_Survey
                     answers.Add(answer);
                     HttpContext.Current.Session["answerList"] = answers;
 
-                    if (nextQuestionForTextInput == 0)
+                    if (nextQuestionForTextInput == 0)  // This means the end of the questions
                     {
                         Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
                         return;
                     }
+                    //we store this next question as current question in the session so our page load after postback will be able to get this question ID
                     HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
                     DisplayQuestionAndOptions(nextQuestionForTextInput);
                     return;
                 }
 
+                // In case when date text box is not null and other controls are. This applies to text boxes type in the db which can accept only dates as the input
+                // Pseudocode for validating the date input in nextButton_Click (dateTextbox branch):
+                // 1. Check if dateTextbox.Text is null, empty, or whitespace.
+                //    - If so, add a CustomValidator to answerPlaceholder with an error message and return.
+                // 2. Try to parse dateTextbox.Text as a DateTime.
+                //    - If parsing fails, add a CustomValidator to answerPlaceholder with an error message and return.
+                // 3. If valid, proceed as before.
+
                 else if (dateTextbox != null && rbl == null && cb == null && textbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
+                    // Validate that the date is not empty
+                    if (string.IsNullOrWhiteSpace(dateTextbox.Text))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "DateTextBoxValidator";
+                        validator.ErrorMessage = "Please select a date";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+
+                    // Validate that the input is a valid date
+                    DateTime parsedDate;
+                    if (!DateTime.TryParse(dateTextbox.Text, out parsedDate))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "DateTextBoxValidator";
+                        validator.ErrorMessage = "Invalid date format";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+
                     Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
                     //add the answer and question to the session
                     Answer answer = new Answer();
@@ -143,13 +210,16 @@ namespace AITR_Survey
                     return;
                 }
 
-                //in case of email
+                // In case when email text box is not null and other controls are. This applies to text boxes type in the db which can accept only emails as the input
                 else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox != null && suburbTextbox == null && postCodeTextbox == null)
                 {
+
+
                     string tbxText = emailTextbox.Text;
-                    //add the answer and question to the session
+                    //get the current question from the session
                     var questionID = HttpContext.Current.Session["currentQuestionID"];
 
+                    //add the answer and question to the session
                     Answer answer = new Answer();
                     answer.QuestionID = Int32.Parse(questionID.ToString());
                     answer.SingleChoiceAnswerID = null;
@@ -167,28 +237,46 @@ namespace AITR_Survey
                     return;
                 }
 
-                // in case of suburb
-                else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox == null && suburbTextbox != null && postCodeTextbox == null)
+                // In case when suburb text box is not null and other controls are. This applies to text boxes type in the db which can accept only characters as the input like in suburbs
+                // In case when email text box is not null and other controls are. This applies to text boxes type in the db which can accept only emails as the input
+                else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox != null && suburbTextbox == null && postCodeTextbox == null)
                 {
-                    string tbxText = suburbTextbox.Text;
+                    string tbxText = emailTextbox.Text;
 
-                    if (tbxText.Any(char.IsDigit))
+                    // Validate that the email is not empty
+                    if (string.IsNullOrWhiteSpace(tbxText))
                     {
                         CustomValidator validator = new CustomValidator();
-                        validator.ID = "SuburbValidator";
-                        validator.ErrorMessage = "Invalid Suburb";
+                        validator.ID = "EmailValidator";
+                        validator.ErrorMessage = "Email cannot be empty";
                         validator.IsValid = false;
                         answerPlaceholder.Controls.Add(validator);
                         return;
                     }
-                    //add the answer and question to the session
+
+                    // Validate email format using AppConstants email regex
+                    System.Text.RegularExpressions.Regex emailRegex = new System.Text.RegularExpressions.Regex(AppConstants.EmailValidatorRegex);
+                    if (!emailRegex.IsMatch(tbxText))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "EmailFormatValidator";
+                        validator.ErrorMessage = "Please enter a valid email address";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+
+                    //get the current question from the session
                     var questionID = HttpContext.Current.Session["currentQuestionID"];
+
+                    //add the answer and question to the session
                     Answer answer = new Answer();
                     answer.QuestionID = Int32.Parse(questionID.ToString());
                     answer.SingleChoiceAnswerID = null;
                     answer.TextInputAnswer = tbxText;
                     answers.Add(answer);
                     HttpContext.Current.Session["answerList"] = answers;
+
                     if (nextQuestionForTextInput == 0)
                     {
                         Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
@@ -200,12 +288,13 @@ namespace AITR_Survey
                 }
 
 
-                //in case of postcode
+                // In case when postcode text box is not null and other controls are. This applies to text boxes type in the db which can accept only numbers as the input such as postcodes
                 else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox != null)
                 {
-                    string tbxText = postCodeTextbox.Text;
+                    string tbxText = postCodeTextbox.Text.Trim();
 
-                    if (tbxText.Any(char.IsLetter))
+                    // validating if the postcode does not contain characters and is between 4 to 6 
+                    if (tbxText == "" || tbxText.Any(char.IsLetter) || tbxText.Length < 4 || tbxText.Length > 6)
                     {
                         CustomValidator validator = new CustomValidator();
                         validator.ID = "SuburbValidator";
@@ -234,8 +323,11 @@ namespace AITR_Survey
                     return;
                 }
 
+                // In case when postcode text box is not null and other controls are. This applies to text boxes type in the db which can accept only numbers as the input such as postcodes
                 else if (rbl == null && cb != null && textbox == null && dateTextbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
+
+
                     Int32 ultimateQuestionID = 0;
                     List<ListItem> selectedOptions = cb.Items.Cast<ListItem>().Where(n => n.Selected).ToList();
 
@@ -264,7 +356,8 @@ namespace AITR_Survey
                         return;
                     }
 
-                    //check if the selected options are less than 1
+
+                    // store all the selected options in the session as answers to store it in the database
                     foreach (ListItem item in selectedOptions)
                     {
                         //System.Diagnostics.Debug.WriteLine(item.Value);
@@ -278,6 +371,7 @@ namespace AITR_Survey
                         HttpContext.Current.Session["answerList"] = answers;
                     }
 
+                    //check if the selected options are less than 1
                     if (selectedOptions.Count < 1)
                     {
                         CustomValidator validator = new CustomValidator();
@@ -288,6 +382,8 @@ namespace AITR_Survey
                         return;
                     }
 
+
+                    //if the selected options is only one and there is no queue, we display the next question based on the selected answer
                     else if (selectedOptions.Count == 1 && hasQueue == false)
                     {
                         //now store the data into the session for later
@@ -303,6 +399,7 @@ namespace AITR_Survey
                         return;
                     }
 
+                    // if the selected options are more than 1 and there is no queue yet, we start the queue and add the questions to the queue
                     else if (selectedOptions.Count > 1 && hasQueue == false)
                     {
                         List<Int32> questionsQueue = new List<Int32>();
@@ -327,6 +424,12 @@ namespace AITR_Survey
                             DisplayQuestionAndOptions(nextQuestionID);
                             return;
                         }
+
+                        // To determine ultimate question which will be our last question in the queue before going into next question
+
+                        // ULTIMATE QUESTION LOGIC
+                        // Main Question --> Option A --> Question 1 --> Options --> Ultimate Question
+                        // Main Question --> Option B --> Question 2 --> Options --> Ultimate Question
                         if (nextQuestionIDsFromSelectedOptions.Count > 1)
                         {
                             //this means there needs to be a queue now
@@ -345,9 +448,9 @@ namespace AITR_Survey
                                 }
                             }
 
+                            //if no ultimate question id's are found, we go into this logic 
                             if (ultimateQuestionID == 0)
                             {
-                                //now the next question to display wouldbe other questions than ultimate one
                                 questionsQueue.Clear();
                                 questionsQueue = nextQuestionIDsFromSelectedOptions;
                                 Int32 nextQuestionID = questionsQueue.First(); //get the first question from the queue
@@ -356,13 +459,14 @@ namespace AITR_Survey
                                 questionsQueue.Remove(nextQuestionID);
                                 HttpContext.Current.Session["HasQueue"] = true; //set the hasQueue to true
                                 hasQueue = true; //set the hasQueue to true
-                                HttpContext.Current.Session["QuestionQueue"] = questionsQueue; //store the que
-                                                                                               //stions queue in the session
+                                HttpContext.Current.Session["QuestionQueue"] = questionsQueue; //store the questions queue in the session
                                 return;
                             }
+
+                            //else if ultimate question is found
                             else
                             {
-                                //now the next question to display wouldbe other questions than ultimate one
+                                //now the next question to display wouldbe  questions other than ultimate one
                                 questionsQueue.Clear();
                                 questionsQueue = nextQuestionIDsFromSelectedOptions;
                                 questionsQueue.Remove(ultimateQuestionID);
@@ -382,6 +486,7 @@ namespace AITR_Survey
 
                     }
 
+                    // if there is queue but there is only one question left, this will be our ultimate/last question from the queue
                     else if (hasQueue == true && questionsQueue.Count == 1)
                     {
 
@@ -395,11 +500,14 @@ namespace AITR_Survey
                         return;
                     }
 
+                    // if there is queue and there is more than one question left in the queue, we display a question, remove it from the queue and update the queue list
                     else if (hasQueue == true && questionsQueue.Count > 1)
                     {
 
+                        //get the ultimate question ID from the session
                         var utimateQuestionSessionID = HttpContext.Current.Session["ultimateQuestionID"];
 
+                        //if there is no ultimate questionn display the other question from the queue without worrying about the ultimate question
                         if (utimateQuestionSessionID == null)
                         {
                             Int32 nextQuestionID = questionsQueue.First(); //get the first question from the queue
@@ -412,6 +520,8 @@ namespace AITR_Survey
                                                                                            //stions queue in the session
                             return;
                         }
+
+                        //when there is ultimate question, we should display that at last
                         else
                         {
                             ultimateQuestionID = (Int32)utimateQuestionSessionID;
@@ -433,6 +543,13 @@ namespace AITR_Survey
 
         }
 
+        /// <summary>
+        /// Displays the specified question and its associated options to the user.
+        /// </summary>
+        /// <remarks>This method retrieves the question and its options based on the provided <paramref
+        /// name="questionID"/> and updates the UI to display them. If the <paramref name="questionID"/> is 10, the user
+        /// is redirected to the registration page.</remarks>
+        /// <param name="questionID">The unique identifier of the question to be displayed.</param>
         protected void DisplayQuestionAndOptions(Int32 questionID)
         {
             Question question = GetQuestionFromQuestionID(questionID);
@@ -440,7 +557,7 @@ namespace AITR_Survey
             previousButton.Visible = true; //make the previous button visible
             Int32 currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
 
-            if(questionID == 10)
+            if (questionID == 10)
             {
                 Response.Redirect(AppConstants.redirectToRegisterRespondents);
                 return;
@@ -450,6 +567,14 @@ namespace AITR_Survey
             SetUpListOfOptions(listOfOptions, question);
         }
 
+        /// <summary>
+        /// Retrieves the ID of the next question associated with the specified option ID.
+        /// </summary>
+        /// <remarks>This method queries the database to find the next question ID associated with a given
+        /// multiple-choice option. If an error occurs during the operation, the method returns 0 and logs the
+        /// error.</remarks>
+        /// <param name="optionID">The ID of the multiple-choice option for which the next question ID is to be retrieved.</param>
+        /// <returns>The ID of the next question if found; otherwise, 0.</returns>
         protected Int32 FindNextQuestionFromOptionID(Int32 optionID)
         {
             try
@@ -502,9 +627,17 @@ namespace AITR_Survey
                 Response.Write("Exception found. Error: " + ex.ToString());
                 return 0;
             }
- 
+
         }
 
+        /// <summary>
+        /// Retrieves the connection string based on the current configuration.
+        /// </summary>
+        /// <remarks>This method checks the application's configuration to determine which connection
+        /// string to use.  Ensure that the configuration key "DevelopmentConnectionString" is properly set in the
+        /// application's configuration file.</remarks>
+        /// <returns>A string representing the connection string. Returns an empty string if the configuration does not match the
+        /// expected value.</returns>
         public string GetConnectionString()
         {
             if (ConfigurationManager.ConnectionStrings["DevelopmentConnectionString"].ConnectionString.Equals("Dev"))
@@ -518,6 +651,15 @@ namespace AITR_Survey
             }
         }
 
+        /// <summary>
+        /// Retrieves a <see cref="Question"/> object based on the specified question ID.
+        /// </summary>
+        /// <remarks>This method connects to the database to retrieve the question details. Ensure that
+        /// the database  connection string is correctly configured and that the database is accessible. The method
+        /// handles  exceptions by returning an empty <see cref="Question"/> object and logging the error.</remarks>
+        /// <param name="questionID">The unique identifier of the question to retrieve.</param>
+        /// <returns>A <see cref="Question"/> object containing the details of the question with the specified ID.  If the
+        /// question is not found or an error occurs, an empty <see cref="Question"/> object is returned.</returns>
         public Question GetQuestionFromQuestionID(Int32 questionID)
         {
             Question emptyQuestion = new Question();
@@ -590,15 +732,24 @@ namespace AITR_Survey
             }
         }
 
+        /// <summary>
+        /// Sets the formatted question text in the associated label based on the question's properties.
+        /// </summary>
+        /// <remarks>The method formats the question text to include additional information about
+        /// selection constraints: - If the maximum selection is 1 or 0, only the question text is displayed. - If the
+        /// maximum selection is negative, the absolute value is treated as the minimum selection, and this is included
+        /// in the text. - If the maximum selection is greater than 1, it is included in the text as the maximum
+        /// selection. If an unexpected condition occurs, a default error message is displayed.</remarks>
+        /// <param name="question">The <see cref="Question"/> object containing the question text, ID, and selection constraints.</param>
         protected void SetQuestionTextInAFormat(Question question)
         {
             Int32 maximumSelection = question.MaxSelection;
 
-            if(maximumSelection == 1 || maximumSelection == 0)
+            if (maximumSelection == 1 || maximumSelection == 0)
             {
                 QuestionLabel.Text = "(Question " + question.QuestionID + ")  " + question.QuestionText; //display the question text
             }
-            else if(maximumSelection < 0)
+            else if (maximumSelection < 0)
             {
                 QuestionLabel.Text = "(Question " + question.QuestionID + ")  " + question.QuestionText + "     (minimum selection: " + Math.Abs(maximumSelection) + " )"; //display the question text with minimmum selection option
             }
@@ -610,8 +761,19 @@ namespace AITR_Survey
             {
                 QuestionLabel.Text = "Something unexpected happened. Please try again";
                 return;
-            }  
+            }
         }
+
+        /// <summary>
+        /// Retrieves all multiple-choice options associated with a specific question ID.
+        /// </summary>
+        /// <remarks>This method establishes a connection to the database, executes a query to retrieve
+        /// all options associated with the specified question ID, and returns the results as a list of <see
+        /// cref="Option"/> objects. Ensure that the database connection string is correctly configured before calling
+        /// this method.</remarks>
+        /// <param name="questionID">The unique identifier of the question for which to retrieve the associated options.</param>
+        /// <returns>A list of <see cref="Option"/> objects representing the multiple-choice options for the specified question.
+        /// Returns an empty list if no options are found.</returns>
         protected List<Option> GetAllOptionsFromQuestionID(int questionID)
         {
 
@@ -664,9 +826,26 @@ namespace AITR_Survey
                 Response.Write("Exception found. Error: " + ex.ToString());
             }
 
-              return listOfOptions;
+            return listOfOptions;
         }
 
+        /// <summary>
+        /// Configures the UI controls for a question based on its type and associated options.
+        /// </summary>
+        /// <remarks>This method dynamically sets up the appropriate input controls (e.g., radio buttons,
+        /// checkboxes, text boxes) in the <c>answerPlaceholder</c> based on the type of the question. It also adds
+        /// necessary validators to ensure valid user input.  Supported question types include: <list type="bullet">
+        /// <item><description>Single choice: Displays a list of radio buttons.</description></item>
+        /// <item><description>Multiple choice: Displays a list of checkboxes.</description></item>
+        /// <item><description>Text input: Displays a text box for free-form input.</description></item>
+        /// <item><description>Date input: Displays a text box for date selection.</description></item>
+        /// <item><description>Email input: Displays a text box for email input with validation.</description></item>
+        /// <item><description>Suburb and postcode input: Displays text boxes for specific input
+        /// types.</description></item> </list> If the question type indicates the end of the survey, the user is
+        /// redirected to the confirmation page.</remarks>
+        /// <param name="options">A list of <see cref="Option"/> objects representing the available choices for the question.</param>
+        /// <param name="question">The <see cref="Question"/> object containing details about the question, including its type and any
+        /// additional metadata.</param>
         protected void SetUpListOfOptions(List<Option> options, Question question)
         {
             string questionType = question.QuestionType;
@@ -688,12 +867,12 @@ namespace AITR_Survey
                 }
                 answerPlaceholder.Controls.Add(rbl);
 
-                RequiredFieldValidator validator = new RequiredFieldValidator();
-                validator.ID = "validator";
-                validator.ControlToValidate = "RadioButtonList";
-                validator.Display = ValidatorDisplay.Dynamic;
-                validator.ErrorMessage = "Please select one option";
-                answerPlaceholder.Controls.Add(validator);
+                //RequiredFieldValidator validator = new RequiredFieldValidator();
+                //validator.ID = "validator";
+                //validator.ControlToValidate = "RadioButtonList";
+                //validator.Display = ValidatorDisplay.Dynamic;
+                //validator.ErrorMessage = "Please select one option";
+                //answerPlaceholder.Controls.Add(validator);
             }
 
             else if (questionType == AppConstants.QuestionTypeMultipleChoice)
@@ -701,7 +880,7 @@ namespace AITR_Survey
                 CheckBoxList cb = new CheckBoxList();
                 cb.ID = "CheckBoxList";
 
-                foreach(Option option in options)
+                foreach (Option option in options)
                 {
                     ListItem item = new ListItem();
                     item.Text = option.OptionText;
@@ -711,35 +890,35 @@ namespace AITR_Survey
                 }
                 answerPlaceholder.Controls.Add(cb);
 
-                CustomValidator validator = new CustomValidator();
-                validator.ID = "validator";
-                validator.Display = ValidatorDisplay.Dynamic;
-                //validator.ErrorMessage = "Please select at least one option";
-                validator.ServerValidate += new ServerValidateEventHandler(ValidateCheckboxList);
+                //CustomValidator validator = new CustomValidator();
+                //validator.ID = "validator";
+                //validator.Display = ValidatorDisplay.Dynamic;
+                ////validator.ErrorMessage = "Please select at least one option";
+                //validator.ServerValidate += new ServerValidateEventHandler(ValidateCheckboxList);
 
-                answerPlaceholder.Controls.Add(validator);
+                //answerPlaceholder.Controls.Add(validator);
 
-               
+
             }
 
             else if (questionType == AppConstants.QuestionTypeTextInput)
-            {          
-                
+            {
+
                 //add a text box to the placeholder
                 TextBox textBox = new TextBox();
-                textBox.ID = "TextBox";              
+                textBox.ID = "TextBox";
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
                 nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
 
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
 
-                RequiredFieldValidator validator = new RequiredFieldValidator();
-                validator.ID = "validator";
-                validator.ControlToValidate = "TextBox";
-                validator.ErrorMessage = "Textbox cannot be empty";
-                validator.Display = ValidatorDisplay.Dynamic;
-                answerPlaceholder.Controls.Add(validator);
+                //RequiredFieldValidator validator = new RequiredFieldValidator();
+                //validator.ID = "validator";
+                //validator.ControlToValidate = "TextBox";
+                //validator.ErrorMessage = "Textbox cannot be empty";
+                //validator.Display = ValidatorDisplay.Dynamic;
+                //answerPlaceholder.Controls.Add(validator);
             }
 
             else if (questionType == AppConstants.QuestionTypeDate)
@@ -751,20 +930,20 @@ namespace AITR_Survey
                 nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
                 answerPlaceholder.Controls.Add(textBox);
 
-                RequiredFieldValidator validator = new RequiredFieldValidator();
-                validator.ID = "DateValidator";
-                validator.ControlToValidate = "DateTextBox";
-                validator.ErrorMessage = "Please select a date";
-                validator.Display = ValidatorDisplay.Dynamic;
-                answerPlaceholder.Controls.Add(validator);
+                //RequiredFieldValidator validator = new RequiredFieldValidator();
+                //validator.ID = "DateValidator";
+                //validator.ControlToValidate = "DateTextBox";
+                //validator.ErrorMessage = "Please select a date";
+                //validator.Display = ValidatorDisplay.Dynamic;
+                //answerPlaceholder.Controls.Add(validator);
             }
 
-            else if(questionType == AppConstants.QuestionTypeFinish || question.NextQuestionForTextInput == "0")
+            else if (questionType == AppConstants.QuestionTypeFinish || question.NextQuestionForTextInput == "0")
             {
                 Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
             }
 
-            else if(questionType == AppConstants.QuestionTypeTextInputEmail)
+            else if (questionType == AppConstants.QuestionTypeTextInputEmail)
             {
                 //add a text box to the placeholder
                 TextBox textBox = new TextBox();
@@ -776,20 +955,20 @@ namespace AITR_Survey
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
 
-                RequiredFieldValidator validator = new RequiredFieldValidator();
-                validator.ID = "validator";
-                validator.ControlToValidate = "TextBoxEmail";
-                validator.ErrorMessage = "Email cannot be empty";
-                validator.Display = ValidatorDisplay.Dynamic;
-                answerPlaceholder.Controls.Add(validator);
+                //RequiredFieldValidator validator = new RequiredFieldValidator();
+                //validator.ID = "validator";
+                //validator.ControlToValidate = "TextBoxEmail";
+                //validator.ErrorMessage = "Email cannot be empty";
+                //validator.Display = ValidatorDisplay.Dynamic;
+                //answerPlaceholder.Controls.Add(validator);
 
-                RegularExpressionValidator regularExpressionValidator = new RegularExpressionValidator();
-                regularExpressionValidator.ID = "validateEmail";
-                regularExpressionValidator.ControlToValidate = "TextBoxEmail";
-                regularExpressionValidator.ErrorMessage = "Please enter a valid email";
-                regularExpressionValidator.ValidationExpression = AppConstants.EmailValidatorRegex;
-                regularExpressionValidator.Display = ValidatorDisplay.Dynamic;
-                answerPlaceholder.Controls.Add(regularExpressionValidator);
+                //RegularExpressionValidator regularExpressionValidator = new RegularExpressionValidator();
+                //regularExpressionValidator.ID = "validateEmail";
+                //regularExpressionValidator.ControlToValidate = "TextBoxEmail";
+                //regularExpressionValidator.ErrorMessage = "Please enter a valid email";
+                //regularExpressionValidator.ValidationExpression = AppConstants.EmailValidatorRegex;
+                //regularExpressionValidator.Display = ValidatorDisplay.Dynamic;
+                //answerPlaceholder.Controls.Add(regularExpressionValidator);
             }
 
 
@@ -804,12 +983,12 @@ namespace AITR_Survey
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
 
-                RequiredFieldValidator validator = new RequiredFieldValidator();
-                validator.ID = "validator";
-                validator.ControlToValidate = "TextBoxSuburb";
-                validator.ErrorMessage = "Suburb cannot be empty";
-                validator.Display = ValidatorDisplay.Dynamic;
-                answerPlaceholder.Controls.Add(validator);
+                //RequiredFieldValidator validator = new RequiredFieldValidator();
+                //validator.ID = "validator";
+                //validator.ControlToValidate = "TextBoxSuburb";
+                //validator.ErrorMessage = "Suburb cannot be empty";
+                //validator.Display = ValidatorDisplay.Dynamic;
+                //answerPlaceholder.Controls.Add(validator);
             }
 
 
@@ -825,16 +1004,23 @@ namespace AITR_Survey
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
 
-                RequiredFieldValidator validator = new RequiredFieldValidator();
-                validator.ID = "validator";
-                validator.ControlToValidate = "TextBoxPostCode";
-                validator.ErrorMessage = "PostCode cannot be empty";
-                validator.Display = ValidatorDisplay.Dynamic;
-                answerPlaceholder.Controls.Add(validator);
+                //RequiredFieldValidator validator = new RequiredFieldValidator();
+                //validator.ID = "validator";
+                //validator.ControlToValidate = "TextBoxPostCode";
+                //validator.ErrorMessage = "PostCode cannot be empty";
+                //validator.Display = ValidatorDisplay.Dynamic;
+                //answerPlaceholder.Controls.Add(validator);
             }
             answerPlaceholder.Controls.Add(new LiteralControl("<br />"));
         }
 
+        /// <summary>
+        /// Validates whether at least one item in a <see cref="CheckBoxList"/> is selected.
+        /// </summary>
+        /// <remarks>This method checks a <see cref="CheckBoxList"/> control within the current context to
+        /// ensure  that at least one item is selected. If no items are selected, the validation fails.</remarks>
+        /// <param name="o">The source of the validation event. Typically unused in this method.</param>
+        /// <param name="e">The <see cref="ServerValidateEventArgs"/> containing the validation result.</param>
         protected void ValidateCheckboxList(Object o, ServerValidateEventArgs e)
         {
             CheckBoxList cbl = (CheckBoxList)answerPlaceholder.FindControl("CheckBoxList");
@@ -848,6 +1034,12 @@ namespace AITR_Survey
             }
         }
 
+        /// <summary>
+        /// Loads the first question from the database and prepares it for display.
+        /// </summary>
+        /// <remarks>This method retrieves the first question marked as the starting point in the
+        /// database,  along with its associated options, and sets up the UI for displaying the question and its
+        /// options. The current question ID is stored in the session for subsequent operations.</remarks>
         protected void LoadFirstQuestion()
         {
             //here connect the database
@@ -933,6 +1125,119 @@ namespace AITR_Survey
                 label.Text = "Something went wrong. Please see the msg below: " + ex.Message;
                 answerPlaceholder.Controls.Clear();
                 answerPlaceholder.Controls.Add(label);
+            }
+        }
+
+        /// <summary>
+        /// Handles the click event for the "Skip Question" button, allowing the user to skip the current question.
+        /// </summary>
+        /// <remarks>If there is no current question to skip, an alert is displayed to the user. 
+        /// Otherwise, the method determines the next question to display or redirects the user to the answer
+        /// confirmation page  if no further questions are available.</remarks>
+        /// <param name="sender">The source of the event, typically the button that was clicked.</param>
+        /// <param name="e">An <see cref="EventArgs"/> object containing the event data.</param>
+        protected void skipQuestionButton_Click(object sender, EventArgs e)
+        {
+
+
+            var sessionQueue = HttpContext.Current.Session["QuestionQueue"];
+            var sessionHasQueue = HttpContext.Current.Session["HasQueue"];
+            var answerDictionarySession = HttpContext.Current.Session["answerList"];
+            if (answerDictionarySession != null)
+            {
+                answers = (List<Answer>)HttpContext.Current.Session["answerList"];
+            }
+            if (sessionQueue != null && sessionHasQueue != null)
+            {
+                questionsQueue = (List<Int32>)sessionQueue;
+                hasQueue = (Boolean)sessionHasQueue;
+            }
+
+            // for questions without the branching logic, we check if the queue is present. If no queue, no stress we simply skip the current question and display next question Id from database
+            if (!hasQueue || questionsQueue.Count == 1)
+            {
+                var questionID = HttpContext.Current.Session["currentQuestionID"];
+
+                if (questionID == null)
+                {
+                    Response.Write("<script>alert('No question to skip. Please try again later.');</script>");
+                    return;
+                }
+                else
+                {
+                    Int32 currentQuestionID = Int32.Parse(questionID.ToString());
+                    Question question = GetQuestionFromQuestionID(currentQuestionID);
+                    if (question.NextQuestionForTextInput == "0")
+                    {
+                        Response.Redirect(AppConstants.redirectToAnswerConfirmation);
+                    }
+                    else
+                    {
+                        //if the next question is not 0, then we should display the next question
+                        Int32 nextQuestionID = Int32.Parse(question.NextQuestionForTextInput);
+
+                        if (nextQuestionID == 0 || nextQuestionID == 10)
+                        {
+                            Response.Redirect(AppConstants.redirectToAnswerConfirmation);
+                            return;
+                        }
+                        HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
+                        DisplayQuestionAndOptions(nextQuestionID);
+                        HttpContext.Current.Session.Remove("QuestionQueue");
+                        HttpContext.Current.Session.Remove("hasQueue");
+                        HttpContext.Current.Session.Remove("ultimateQuestionID");
+                        return;
+                    }
+                }
+            }
+
+            // if there is a queue, we need to handle the logic of queue and questionsqueue as we cannot simply take users to a single question if there is a queue
+            else if (hasQueue && questionsQueue.Count > 1)
+            {
+                //if there is a queue, then we should display the next question in the queue
+
+
+                //but if there is the ultimate question, we should display that at last
+               var ultimateQuestion =  HttpContext.Current.Session["ultimateQuestionID"].ToString();
+
+
+                //checking if ultimate question exists
+                if (ultimateQuestion == null)
+                {
+                    //if it does not exists we simply skip the firs question in the list and go to next one
+                    Int32 nextQuestionID = questionsQueue[0]; //get the next question ID from the queue
+                    questionsQueue.RemoveAt(0); //remove the first question from the queue
+                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString(); //store the current question ID in the session
+                    DisplayQuestionAndOptions(nextQuestionID);
+                    return;
+                }
+
+                else
+                {
+                    //if ultimate question exists, we cannot skip the ultimate question because we will need to traverse through other questions before going into the ultimate question
+                    Int32 ultimateQuestionInt = 0;
+
+                    if(Int32.TryParse(ultimateQuestion.ToString(), out ultimateQuestionInt))
+                    {
+                        if (ultimateQuestionInt == 0) return;
+
+                        // in this case, we need to remove the ultimate question from the list, skip the next question on list and add the ultimate question back and go to the next question with it
+                        questionsQueue.Remove(ultimateQuestionInt);
+                        Int32 nextQuestionID = questionsQueue[0]; //get the next question ID from the queue
+                        questionsQueue.RemoveAt(0); //remove the first question from the queue
+                        questionsQueue.Add(ultimateQuestionInt);
+                        HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString(); //store the current question ID in the session
+                        DisplayQuestionAndOptions(nextQuestionID);
+                        return;
+
+                    }
+                }              
+            }
+            else
+            {
+                Response.Write("<script>alert('No question to skip. Please try again later.');</script>");
+
+
             }
         }
     }

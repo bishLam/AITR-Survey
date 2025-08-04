@@ -27,11 +27,14 @@
             <asp:CheckBoxList ID="newspaperReadCheckBoxList" runat="server"></asp:CheckBoxList>
         </div>
 
+
         <asp:Button class="submitButton" ID="LoginButton" runat="server" Text="Search" OnClick="SearchButton_Click" />
         <br />
         <br />
         <br />
-        <asp:GridView ID="GridView1" runat="server"></asp:GridView>
+        <asp:Label ID="testLabel" runat="server" Text=""></asp:Label>
+
+        <asp:GridView ID="answerGridView" runat="server"></asp:GridView>
         <asp:DataList ID="answerDataList" runat="server"></asp:DataList>
 
     </form>

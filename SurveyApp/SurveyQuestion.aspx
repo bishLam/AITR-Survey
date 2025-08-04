@@ -19,6 +19,8 @@
         <br />
         <asp:Button ID="previousButton" runat="server" Text="Previous Question" />
         <asp:Button class="nextQuestionButton" ID="nextButton" runat="server" Text="Next Question" OnClick="nextButton_Click" />
+
+        <asp:Button ID="skipQuestionButton" runat="server" Text="Skip Question" OnClick="skipQuestionButton_Click" />
     </form>
 </body>
 </html>

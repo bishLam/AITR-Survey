@@ -20,6 +20,7 @@ namespace AITR_Survey
         public static String EmailValidatorRegex = "^([\\w\\.\\-]+)@([\\w\\-]+)((\\.(\\w){2,3})+)$";
 
         //links to redirect users between pages
+        public static String redirectToHome = "~/DefaultPage/Default.aspx";
         public static String redirectToViewAllRespondents = "~/Staff/Respondents/AllRespondents.aspx";
         public static String redirectToSearchAllRespondents = "~/Staff/StaffSearch/StaffSearch.aspx";
         public static String redirectToRegisterRespondents = "~/RespondentRegister/RespondentRegister.aspx";
@@ -31,5 +32,17 @@ namespace AITR_Survey
         public static int QuestionIDForStaffSearchBank = 7;
         public static int QuestionIDForStaffSearchBankService = 15;
         public static int QuestionIDForStaffSearchNewsPaper = 8;
+
+
+        protected Int32 ParseStringToInt(String numberToParseInString)
+        {
+
+            if (numberToParseInString == null) return 0;
+
+            Int32 numberToReturn = 0;
+
+            return 0;
+
+            }
+        }
     }
-}
