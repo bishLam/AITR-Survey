@@ -66,7 +66,7 @@ namespace AITR_Survey.Staff.Respondents
                 if (reader["isRegistered"].ToString() == "1")
                 {
                     Respondent respondent = new Respondent();
-                    respondent.RespondentID = Int32.Parse(reader["RespondentID"].ToString());
+                    respondent.RespondentID = convertStringToInt(reader["RespondentID"].ToString());
                     String dateResponded = reader["Date"].ToString();
                     respondent.DateResponded = DateTime.Parse(dateResponded);
                     respondent.IPAddress = reader["IPAddress"].ToString();
@@ -102,7 +102,7 @@ namespace AITR_Survey.Staff.Respondents
                 if (reader["isRegistered"].ToString() == "0")
                 {
                     Respondent respondent = new Respondent();
-                    respondent.RespondentID = Int32.Parse(reader["RespondentID"].ToString());
+                    respondent.RespondentID = convertStringToInt(reader["RespondentID"].ToString());
                     String dateResponded = reader["Date"].ToString();
                     respondent.DateResponded = DateTime.Parse(dateResponded);
                     respondent.IPAddress = reader["IPAddress"].ToString();
@@ -110,13 +110,27 @@ namespace AITR_Survey.Staff.Respondents
                     respondent.LastName = reader["Lastname"].ToString();
                     respondent.ContactNumber = reader["ContactNumber"].ToString();
                     respondent.IsRegistered = reader["isRegistered"].ToString() == "1" ? true : false;
-
                     respondents.Add(respondent);
                 }
 
             }
             conn.Close();
             return respondents;
+        }
+
+        public Int32 convertStringToInt(String valueToConvert)
+        {
+            Int32 valueToStore;
+            if (Int32.TryParse(valueToConvert, out valueToStore))
+            {
+                return valueToStore;
+            }
+            else
+            {
+                HttpContext.Current.Session["ErrorMessage"] = "String could not be converted to integer. Please try again. Provided String: " + valueToConvert;
+                Response.Redirect(AppConstants.redirectToErrorPage);
+                return 0;
+            }
         }
     }
 }

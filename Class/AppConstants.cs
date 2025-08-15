@@ -26,23 +26,13 @@ namespace AITR_Survey
         public static String redirectToRegisterRespondents = "~/RespondentRegister/RespondentRegister.aspx";
         public static String redirectToAnswerConfirmation = "~/SurveyApp/AnswersConfirmation.aspx";
         public static String redirectToStaffDashboard = "~/Staff/StaffDashboard/StaffDashboard.aspx";
+        public static String redirectToErrorPage = "~/Error/ErrorScreen.aspx";
 
 
         //question ids for getting options for staff search
         public static int QuestionIDForStaffSearchBank = 7;
         public static int QuestionIDForStaffSearchBankService = 15;
-        public static int QuestionIDForStaffSearchNewsPaper = 8;
-
-
-        protected Int32 ParseStringToInt(String numberToParseInString)
-        {
-
-            if (numberToParseInString == null) return 0;
-
-            Int32 numberToReturn = 0;
-
-            return 0;
-
-            }
-        }
+        public static int QuestionIDForStaffSearchNewsPaper = 8;        
     }
+
+}

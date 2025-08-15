@@ -120,6 +120,7 @@ namespace AITR_Survey.SurveyApp
             }
         }
 
+
         protected void CancelButton_Click(object sender, EventArgs e)
         {
             // Clear the session data after displaying the answers
@@ -127,9 +128,10 @@ namespace AITR_Survey.SurveyApp
             Response.Redirect("../SurveyApp/SurveyQuestion.aspx");
         }
 
+
         protected void SaveAnswerToDatabase(Answer answer)
         {
-            Int32 respondentID = Int32.Parse(HttpContext.Current.Session["respondentID"].ToString());
+            Int32 respondentID = convertStringToInt(HttpContext.Current.Session["respondentID"].ToString());
             try
             {
                 SurveyQuestion surveyQuestion = new SurveyQuestion();
@@ -362,6 +364,27 @@ namespace AITR_Survey.SurveyApp
             {
                 Response.Write("Exception found. Error: " + ex.ToString());
                 return;
+            }
+        }
+
+        /// <summary>
+        /// Tries to convert the provided into Integer and redirects user to the error screen with error information if there is any
+        /// </summary>
+        /// <param name="valueToConvert"></param>
+        /// <returns>returns the converted value in Int32 format if it is parsable, otherwise redirects to the error page</returns>
+        public Int32 convertStringToInt(String valueToConvert)
+        {
+            Int32 valueToStore;
+            if (Int32.TryParse(valueToConvert, out valueToStore))
+            {
+                return valueToStore;
+            }
+
+            else
+            {
+                HttpContext.Current.Session["ErrorMessage"] = "String could not be converted to integer. Please try again. Provided String: " + valueToConvert;
+                Response.Redirect(AppConstants.redirectToErrorPage);
+                return 0;
             }
         }
     }

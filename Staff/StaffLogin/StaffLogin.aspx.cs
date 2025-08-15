@@ -31,7 +31,7 @@ namespace AITR_Survey
                 SqlConnection conn = new SqlConnection(connectionString);
                 conn.ConnectionString = connectionString;
                 conn.Open();
-                SqlCommand cmd = new SqlCommand("SELECT * FROM Staff WHERE Username = @Username AND Password = @Password", conn);
+                SqlCommand cmd = new SqlCommand("SELECT 1 FROM Staff WHERE Username = @Username AND Password = @Password", conn);
                 cmd.Parameters.AddWithValue("@Username", username);
                 cmd.Parameters.AddWithValue("@Password", password);
                 SqlDataReader reader = cmd.ExecuteReader();
@@ -48,7 +48,6 @@ namespace AITR_Survey
                     validator.IsValid = false;
                     validator.ErrorMessage = "Invalid username or password. Please try again.";
                     validator.Display = ValidatorDisplay.Dynamic;
-
                     return;
                 }
                 conn.Close();

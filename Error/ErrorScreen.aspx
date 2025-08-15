@@ -10,6 +10,9 @@
     <form id="form1" runat="server">
         <div>
             <h2>Sorry, Something unexpected happened. Please try again later. You can also view details below for information about the error</h2>
+            <br />
+            <asp:Label runat="server" ID="errorDetailsLabel"></asp:Label>
+            <h3></h3>
             <asp:Button ID="Button1" runat="server" Text="Go to Home" OnClick="GoHomeButton_Click" />
         </div>
     </form>

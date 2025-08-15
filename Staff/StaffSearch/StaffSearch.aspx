@@ -32,11 +32,10 @@
         <br />
         <br />
         <br />
-        <asp:Label ID="testLabel" runat="server" Text=""></asp:Label>
+        <asp:Label ID="headerLabel" runat="server" Text=""></asp:Label>
 
+        <asp:Label ID="searchResultHeader" runat="server" Text="Search Results:" Font-Bold="True" Font-Italic="True" Visible="False"></asp:Label>
         <asp:GridView ID="answerGridView" runat="server"></asp:GridView>
-        <asp:DataList ID="answerDataList" runat="server"></asp:DataList>
-
     </form>
 </body>
 </html>

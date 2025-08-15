@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
@@ -46,21 +47,11 @@ namespace AITR_Survey
             {
                 //since the placeholders and everything is lost during postback, this is essential;
                 Int32 currentQuestionID = 0;
-                currentQuestionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                if (!Int32.TryParse(HttpContext.Current.Session["currentQuestionID"] as String, out currentQuestionID)) return;
                 DisplayQuestionAndOptions(currentQuestionID);
             }
         }
 
-        /// <summary>
-        /// Handles the click event for the "Next" button in the survey application.
-        /// </summary>
-        /// <remarks>This method processes the user's response to the current survey question, validates
-        /// the input,  and determines the next question to display. It supports multiple input types, including radio
-        /// buttons,  checkboxes, text boxes, and specialized text inputs (e.g., date, email, suburb, and postcode). 
-        /// Depending on the user's input and the survey flow, the method may redirect to the confirmation page  or
-        /// queue additional questions for display.</remarks>
-        /// <param name="sender">The source of the event, typically the "Next" button.</param>
-        /// <param name="e">An <see cref="EventArgs"/> object that contains the event data.</param>
         protected void nextButton_Click(object sender, EventArgs e)
         {
 
@@ -68,7 +59,6 @@ namespace AITR_Survey
             //Step 1 would be to find the controls in our placeholder and display it in the screen
             if (answerPlaceholder.Controls.Count > 0) //meaning there is at least one control
             {
-
                 // The following will try to access relevant placeholder controls. Then we can check if any placeholder is null or not to retrieve the user input
                 RadioButtonList rbl = answerPlaceholder.FindControl("RadioButtonList") as RadioButtonList;
                 CheckBoxList cb = answerPlaceholder.FindControl("CheckBoxList") as CheckBoxList;
@@ -82,12 +72,7 @@ namespace AITR_Survey
                 if (rbl != null && cb == null && textbox == null && dateTextbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
                     // we get the only selected value in the radio button list, get the current question ID from the session
-
-
-
-
                     //we need to have the validators here to validate the user input 
-
                     if (rbl.SelectedItem == null)
                     {
                         CustomValidator validator = new CustomValidator();
@@ -98,8 +83,12 @@ namespace AITR_Survey
                         return;
                     }
 
-                    Int32 selectedOptionID = Int32.Parse(rbl.SelectedItem.Value);
-                    Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                   
+                    Int32 selectedOptionID;
+                    if(!Int32.TryParse(rbl.SelectedItem.Value, out selectedOptionID)) return;
+
+                    Int32 questionID;
+                    if (!Int32.TryParse(HttpContext.Current.Session["currentQuestionID"] as String, out questionID)) return;
 
                     // we will initialise the Answer object to store this answer and questions so that we can store this in the session to later push it in the database
                     Answer answer = new Answer();
@@ -146,7 +135,9 @@ namespace AITR_Survey
 
                     //intialise answer object and store the current answer in the session
                     Answer answer = new Answer();
-                    answer.QuestionID = Int32.Parse(questionID.ToString());
+                    Int32 tempQID;
+                    Int32.TryParse(questionID.ToString(), out tempQID);
+                    answer.QuestionID = tempQID;
                     answer.SingleChoiceAnswerID = null;
                     answer.TextInputAnswer = tbxText;
                     answers.Add(answer);
@@ -164,13 +155,6 @@ namespace AITR_Survey
                 }
 
                 // In case when date text box is not null and other controls are. This applies to text boxes type in the db which can accept only dates as the input
-                // Pseudocode for validating the date input in nextButton_Click (dateTextbox branch):
-                // 1. Check if dateTextbox.Text is null, empty, or whitespace.
-                //    - If so, add a CustomValidator to answerPlaceholder with an error message and return.
-                // 2. Try to parse dateTextbox.Text as a DateTime.
-                //    - If parsing fails, add a CustomValidator to answerPlaceholder with an error message and return.
-                // 3. If valid, proceed as before.
-
                 else if (dateTextbox != null && rbl == null && cb == null && textbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
                     // Validate that the date is not empty
@@ -196,7 +180,7 @@ namespace AITR_Survey
                         return;
                     }
 
-                    Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                    Int32 questionID = convertStringToInt(HttpContext.Current.Session["currentQuestionID"] as String);
                     //add the answer and question to the session
                     Answer answer = new Answer();
                     answer.QuestionID = questionID;
@@ -221,7 +205,7 @@ namespace AITR_Survey
 
                     //add the answer and question to the session
                     Answer answer = new Answer();
-                    answer.QuestionID = Int32.Parse(questionID.ToString());
+                    answer.QuestionID = convertStringToInt(questionID.ToString());
                     answer.SingleChoiceAnswerID = null;
                     answer.TextInputAnswer = tbxText;
                     answers.Add(answer);
@@ -238,6 +222,52 @@ namespace AITR_Survey
                 }
 
                 // In case when suburb text box is not null and other controls are. This applies to text boxes type in the db which can accept only characters as the input like in suburbs
+
+                else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox == null && suburbTextbox != null && postCodeTextbox == null)
+                {
+                    string tbxText = suburbTextbox.Text;
+
+                    // Validate that the email is not empty
+                    if (string.IsNullOrWhiteSpace(tbxText))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "SuburbValidator";
+                        validator.ErrorMessage = "Suburb cannot be empty";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    }
+
+                    if (!validateSuburb(tbxText)) 
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "SuburbValidator";
+                        validator.ErrorMessage = "Suburb is not valid";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    };
+
+                    //get the current question from the session
+                    var questionID = HttpContext.Current.Session["currentQuestionID"];
+
+                    //add the answer and question to the session
+                    Answer answer = new Answer();
+                    answer.QuestionID = convertStringToInt(questionID.ToString());
+                    answer.SingleChoiceAnswerID = null;
+                    answer.TextInputAnswer = tbxText;   
+                    answers.Add(answer);
+                    HttpContext.Current.Session["answerList"] = answers;
+
+                    if (nextQuestionForTextInput == 0)
+                    {
+                        Response.Redirect("../SurveyApp/AnswersConfirmation.aspx");
+                        return;
+                    }
+                    HttpContext.Current.Session["currentQuestionID"] = nextQuestionForTextInput.ToString();
+                    DisplayQuestionAndOptions(nextQuestionForTextInput);
+                    return;
+                }
                 // In case when email text box is not null and other controls are. This applies to text boxes type in the db which can accept only emails as the input
                 else if (dateTextbox == null && rbl == null && cb == null && textbox == null && emailTextbox != null && suburbTextbox == null && postCodeTextbox == null)
                 {
@@ -271,7 +301,7 @@ namespace AITR_Survey
 
                     //add the answer and question to the session
                     Answer answer = new Answer();
-                    answer.QuestionID = Int32.Parse(questionID.ToString());
+                    answer.QuestionID = convertStringToInt(questionID.ToString());
                     answer.SingleChoiceAnswerID = null;
                     answer.TextInputAnswer = tbxText;
                     answers.Add(answer);
@@ -293,20 +323,30 @@ namespace AITR_Survey
                 {
                     string tbxText = postCodeTextbox.Text.Trim();
 
-                    // validating if the postcode does not contain characters and is between 4 to 6 
-                    if (tbxText == "" || tbxText.Any(char.IsLetter) || tbxText.Length < 4 || tbxText.Length > 6)
+                    Int32 temp = 0;
+                    if(!Int32.TryParse(tbxText, out temp))
                     {
                         CustomValidator validator = new CustomValidator();
                         validator.ID = "SuburbValidator";
-                        validator.ErrorMessage = "Invalid PostCode";
+                        validator.ErrorMessage = "Suburb should be numbers";
                         validator.IsValid = false;
                         answerPlaceholder.Controls.Add(validator);
                         return;
                     }
+                    // validating if the postcode does not contain characters and is between 4 to 6 
+                    if (!validatePostcode(temp))
+                    {
+                        CustomValidator validator = new CustomValidator();
+                        validator.ID = "SuburbValidator";
+                        validator.ErrorMessage = "Suburb is not valid";
+                        validator.IsValid = false;
+                        answerPlaceholder.Controls.Add(validator);
+                        return;
+                    };
                     //add the answer and question to the session
                     var questionID = HttpContext.Current.Session["currentQuestionID"];
                     Answer answer = new Answer();
-                    answer.QuestionID = Int32.Parse(questionID.ToString());
+                    answer.QuestionID = convertStringToInt(questionID.ToString());
                     answer.SingleChoiceAnswerID = null;
                     answer.TextInputAnswer = tbxText;
                     answers.Add(answer);
@@ -323,7 +363,7 @@ namespace AITR_Survey
                     return;
                 }
 
-                // In case when postcode text box is not null and other controls are. This applies to text boxes type in the db which can accept only numbers as the input such as postcodes
+                // In case when multiplechoice text box is not null and other controls are. This applies to multiple choice type in the db
                 else if (rbl == null && cb != null && textbox == null && dateTextbox == null && emailTextbox == null && suburbTextbox == null && postCodeTextbox == null)
                 {
 
@@ -332,7 +372,7 @@ namespace AITR_Survey
                     List<ListItem> selectedOptions = cb.Items.Cast<ListItem>().Where(n => n.Selected).ToList();
 
                     //first we need to validate the maximun or minimum selection
-                    Question currentQuestion = GetQuestionFromQuestionID(Int32.Parse(HttpContext.Current.Session["currentQuestionID"].ToString()));
+                    Question currentQuestion = GetQuestionFromQuestionID(convertStringToInt(HttpContext.Current.Session["currentQuestionID"].ToString()));
 
                     //In case user selects more than maximum allowed options
                     if (currentQuestion.MaxSelection > 0 && selectedOptions.Count > currentQuestion.MaxSelection)
@@ -361,11 +401,11 @@ namespace AITR_Survey
                     foreach (ListItem item in selectedOptions)
                     {
                         //System.Diagnostics.Debug.WriteLine(item.Value);
-                        Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                        Int32 questionID = convertStringToInt(HttpContext.Current.Session["currentQuestionID"] as String);
                         //add the answer and question to the session
                         Answer answer = new Answer();
                         answer.QuestionID = questionID;
-                        answer.SingleChoiceAnswerID = Int32.Parse(item.Value);
+                        answer.SingleChoiceAnswerID = convertStringToInt(item.Value);
                         answer.TextInputAnswer = null; //since this is a single choice question, the text input answer is null
                         answers.Add(answer);
                         HttpContext.Current.Session["answerList"] = answers;
@@ -387,11 +427,11 @@ namespace AITR_Survey
                     else if (selectedOptions.Count == 1 && hasQueue == false)
                     {
                         //now store the data into the session for later
-                        Int32 selectedOptionID = Int32.Parse(selectedOptions[0].Value);
+                        Int32 selectedOptionID = convertStringToInt(selectedOptions[0].Value);
                         //System.Diagnostics.Debug.WriteLine(selectedOptionID);
 
 
-                        Int32 questionID = Int32.Parse(HttpContext.Current.Session["currentQuestionID"] as String);
+                        Int32 questionID = convertStringToInt(HttpContext.Current.Session["currentQuestionID"] as String);
                         int nextQuestionID;
                         nextQuestionID = FindNextQuestionFromOptionID(selectedOptionID);
                         HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
@@ -406,7 +446,7 @@ namespace AITR_Survey
                         List<Int32> nextQuestionIDsFromSelectedOptions = new List<Int32>();
                         foreach (ListItem singleOption in selectedOptions)
                         {
-                            Int32 singleSelectedOption = Int32.Parse(singleOption.Value.ToString());
+                            Int32 singleSelectedOption = convertStringToInt(singleOption.Value.ToString());
                             Int32 nextQuestionIDFromOption = FindNextQuestionFromOptionID(singleSelectedOption);
 
                             if (!nextQuestionIDsFromSelectedOptions.Contains(nextQuestionIDFromOption))
@@ -419,7 +459,7 @@ namespace AITR_Survey
 
                         if (nextQuestionIDsFromSelectedOptions.Count == 1)
                         {
-                            Int32 nextQuestionID = Int32.Parse(nextQuestionIDsFromSelectedOptions[0].ToString());
+                            Int32 nextQuestionID = convertStringToInt(nextQuestionIDsFromSelectedOptions[0].ToString());
                             HttpContext.Current.Session["currentQuestionID"] = nextQuestionID.ToString();
                             DisplayQuestionAndOptions(nextQuestionID);
                             return;
@@ -591,7 +631,7 @@ namespace AITR_Survey
                 //3. Consume
                 SqlDataReader reader = questionCommand.ExecuteReader();
                 reader.Read();
-                nextQuestionID = Int32.Parse(reader["NextQuestionID"].ToString());
+                nextQuestionID = convertStringToInt(reader["NextQuestionID"].ToString());
                 conn.Close();
                 return nextQuestionID;
             }
@@ -676,7 +716,7 @@ namespace AITR_Survey
 
                 if (reader.Read())
                 {
-                    question.QuestionID = Int32.Parse(reader["QuestionID"].ToString());
+                    question.QuestionID = convertStringToInt(reader["QuestionID"].ToString());
                     question.QuestionText = reader["QuestionText"].ToString();
                     question.NextQuestionForTextInput = reader["NextQuestionForTextInput"].ToString();
                     question.IsFirstQuestion = reader["isFirstQuestion"].ToString();
@@ -691,7 +731,7 @@ namespace AITR_Survey
                     }
                     else
                     {
-                        question.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
+                        question.MaxSelection = convertStringToInt(reader["MaxAnswerSelection"].ToString());
                     }
 
                 }
@@ -790,9 +830,9 @@ namespace AITR_Survey
                 while (optionsReader.Read())
                 {
                     Option option = new Option();
-                    option.MultipleChoiceOptionID = Int32.Parse(optionsReader["MultipleChoiceOptionID"].ToString());
-                    option.QuestionID = Int32.Parse(optionsReader["QuestionID"].ToString());
-                    option.NextQuestionID = Int32.Parse(optionsReader["NextQuestionID"].ToString());
+                    option.MultipleChoiceOptionID = convertStringToInt(optionsReader["MultipleChoiceOptionID"].ToString());
+                    option.QuestionID = convertStringToInt(optionsReader["QuestionID"].ToString());
+                    option.NextQuestionID = convertStringToInt(optionsReader["NextQuestionID"].ToString());
                     option.OptionText = optionsReader["OptionText"].ToString();
                     listOfOptions.Add(option);
                 }
@@ -908,7 +948,7 @@ namespace AITR_Survey
                 TextBox textBox = new TextBox();
                 textBox.ID = "TextBox";
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
-                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+                nextQuestionForTextInput = convertStringToInt(question.NextQuestionForTextInput);
 
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
@@ -927,7 +967,7 @@ namespace AITR_Survey
                 textBox.ID = "DateTextBox";
                 textBox.TextMode = TextBoxMode.Date; //set the text box to date mode
                 textBox.Attributes.Add("placeholder", "Select a date");
-                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+                nextQuestionForTextInput = convertStringToInt(question.NextQuestionForTextInput);
                 answerPlaceholder.Controls.Add(textBox);
 
                 //RequiredFieldValidator validator = new RequiredFieldValidator();
@@ -950,7 +990,7 @@ namespace AITR_Survey
                 textBox.ID = "TextBoxEmail";
                 textBox.TextMode = TextBoxMode.Email;
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
-                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+                nextQuestionForTextInput = convertStringToInt(question.NextQuestionForTextInput);
 
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
@@ -978,7 +1018,7 @@ namespace AITR_Survey
                 TextBox textBox = new TextBox();
                 textBox.ID = "TextBoxSuburb";
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
-                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+                nextQuestionForTextInput = convertStringToInt(question.NextQuestionForTextInput);
 
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
@@ -999,7 +1039,7 @@ namespace AITR_Survey
                 textBox.ID = "TextBoxPostCode";
                 textBox.TextMode = TextBoxMode.Number; //set the text box to number mode for post code
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString();
-                nextQuestionForTextInput = Int32.Parse(question.NextQuestionForTextInput);
+                nextQuestionForTextInput = convertStringToInt(question.NextQuestionForTextInput);
 
                 //textBox.Text = HttpContext.Current.Session["currentQuestionID"].ToString() + nextQuestionForTextInput;
                 answerPlaceholder.Controls.Add(textBox);
@@ -1064,7 +1104,7 @@ namespace AITR_Survey
                 Question firstQuestion = new Question();
                 while (reader.Read())
                 {
-                    firstQuestion.QuestionID = Int32.Parse(reader["QuestionID"].ToString());
+                    firstQuestion.QuestionID = convertStringToInt(reader["QuestionID"].ToString());
                     firstQuestion.QuestionText = reader["QuestionText"].ToString();
                     firstQuestion.NextQuestionForTextInput = reader["NextQuestionForTextInput"].ToString();
                     firstQuestion.IsFirstQuestion = reader["isFirstQuestion"].ToString();
@@ -1078,7 +1118,7 @@ namespace AITR_Survey
                     else
                     {
                         //if the value is not null, then parse it to int
-                        firstQuestion.MaxSelection = Int32.Parse(reader["MaxAnswerSelection"].ToString());
+                        firstQuestion.MaxSelection = convertStringToInt(reader["MaxAnswerSelection"].ToString());
                     }
                 }
                 //currentQuestionID = firstQuestion.QuestionID; //set the current question ID to the first question ID
@@ -1165,7 +1205,7 @@ namespace AITR_Survey
                 }
                 else
                 {
-                    Int32 currentQuestionID = Int32.Parse(questionID.ToString());
+                    Int32 currentQuestionID = convertStringToInt(questionID.ToString());
                     Question question = GetQuestionFromQuestionID(currentQuestionID);
                     if (question.NextQuestionForTextInput == "0")
                     {
@@ -1174,7 +1214,7 @@ namespace AITR_Survey
                     else
                     {
                         //if the next question is not 0, then we should display the next question
-                        Int32 nextQuestionID = Int32.Parse(question.NextQuestionForTextInput);
+                        Int32 nextQuestionID = convertStringToInt(question.NextQuestionForTextInput);
 
                         if (nextQuestionID == 0 || nextQuestionID == 10)
                         {
@@ -1236,8 +1276,141 @@ namespace AITR_Survey
             else
             {
                 Response.Write("<script>alert('No question to skip. Please try again later.');</script>");
+            }
+        }
+        protected bool validateSuburb(String suburb)
+        {
+            try
+            {
+                SqlConnection conn = new SqlConnection();
+                conn.ConnectionString = GetConnectionString();
+                conn.Open();
+                //at this point we would have the first question. Now lets take the options
+                SqlCommand cmd = new SqlCommand("SELECT 1 FROM Address WHERE suburb = @suburb", conn);
+                cmd.Parameters.AddWithValue("@suburb", suburb);
+                SqlDataReader optionsReader = cmd.ExecuteReader(); //execute the command
 
+                if (optionsReader.Read())
+                {
+                    conn.Close();
+                    return true;
+                }
 
+                else
+                {
+                    conn.Close();
+                    return false;
+                }
+                    
+            }
+            catch (InvalidCastException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return false;
+            }
+
+            catch (SqlException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return false;
+
+            }
+
+            catch (InvalidOperationException ex)
+            {
+
+                Response.Write("InvalidOperationException exception found. Error: " + ex.ToString());
+                return false;
+            }
+
+            catch (IOException ex)
+            {
+
+                Response.Write("IOException exception found. Error: " + ex.ToString());
+                return false;
+            }
+
+            catch (Exception ex)
+            {
+                Response.Write("Exception found. Error: " + ex.ToString());
+                return false;
+            }
+
+        }
+
+        protected bool validatePostcode(Int32 postcode)
+        {
+            try
+            {
+                SqlConnection conn = new SqlConnection();
+                conn.ConnectionString = GetConnectionString();
+                conn.Open();
+                //at this point we would have the first question. Now lets take the options
+                SqlCommand cmd = new SqlCommand("SELECT 1 FROM Address WHERE postcode = @postcode", conn);
+                cmd.Parameters.AddWithValue("@postcode", postcode);
+                SqlDataReader optionsReader = cmd.ExecuteReader(); //execute the command
+
+                if (optionsReader.Read())
+                {
+                    conn.Close();
+                    return true;
+                }
+
+                else
+                {
+                    conn.Close();
+                    return false;
+                }
+
+            }
+            catch (InvalidCastException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return false;
+            }
+
+            catch (SqlException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+                return false;
+
+            }
+
+            catch (InvalidOperationException ex)
+            {
+
+                Response.Write("InvalidOperationException exception found. Error: " + ex.ToString());
+                return false;
+            }
+
+            catch (IOException ex)
+            {
+
+                Response.Write("IOException exception found. Error: " + ex.ToString());
+                return false;
+            }
+
+            catch (Exception ex)
+            {
+                Response.Write("Exception found. Error: " + ex.ToString());
+                return false;
+            }
+
+        }
+
+        protected Int32 convertStringToInt(String valueToConvert)
+        {
+            Int32 valueToStore;
+            if (Int32.TryParse(valueToConvert, out valueToStore))
+            {
+                return valueToStore;
+            }
+
+            else
+            {
+                HttpContext.Current.Session["ErrorMessage"] = "String could not be converted to integer. Please try again. Provided String: " + valueToConvert;
+                Response.Redirect(AppConstants.redirectToErrorPage);
+                return 0;
             }
         }
     }

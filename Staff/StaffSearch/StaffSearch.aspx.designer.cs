@@ -114,13 +114,22 @@ namespace AITR_Survey
         protected global::System.Web.UI.WebControls.Button LoginButton;
 
         /// <summary>
-        /// testLabel control.
+        /// headerLabel control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Label testLabel;
+        protected global::System.Web.UI.WebControls.Label headerLabel;
+
+        /// <summary>
+        /// searchResultHeader control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label searchResultHeader;
 
         /// <summary>
         /// answerGridView control.
@@ -130,14 +139,5 @@ namespace AITR_Survey
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView answerGridView;
-
-        /// <summary>
-        /// answerDataList control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.DataList answerDataList;
     }
 }

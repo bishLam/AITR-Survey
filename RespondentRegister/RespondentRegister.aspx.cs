@@ -12,12 +12,6 @@ namespace AITR_Survey
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            //get all the values from the textboxes
-            if (!IsPostBack)
-            {
-
-            }
-
         }
 
         protected void Submit_Button_Click(object sender, EventArgs e)
@@ -28,19 +22,19 @@ namespace AITR_Survey
             String enteredLastName = lastNameTextBox.Text;
             String contactNumber = ContactNumberTextBox.Text;
             DateTime DOB;
+            DateTime Eighteen = DateTime.Now.Date.AddDays(-6573);
 
             if (DateTime.TryParse(DOBDatePicker.Value, out DOB))
             {
                 // Valid date, use DOB
-                DOB = DateTime.Parse(DOBDatePicker.Value);
-                if (DOB.Date > DateTime.Now.Date)
+                if (Eighteen <= Convert.ToDateTime(DOB))
                 {
                     //this means the entered date is in future
                     CustomValidator validator = new CustomValidator();
                     validator.ControlToValidate = "DOBDatePicker";
                     validator.IsValid = false;
                     validator.Display = ValidatorDisplay.Dynamic;
-                    validator.ErrorMessage = "Date of birth cannot be in the future date";
+                    validator.ErrorMessage = "You must be at least 18 to continue";
                     validatorPlaceholder.Controls.Add(validator);
                     return;
                 }
