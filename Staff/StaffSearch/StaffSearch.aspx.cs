@@ -14,6 +14,7 @@ namespace AITR_Survey
     public partial class StaffDashboard : System.Web.UI.Page
     {
 
+        //enum values to get the search criterias
         public enum SearchCriteria
         {
             Banks,
@@ -31,6 +32,7 @@ namespace AITR_Survey
             if (!IsPostBack)
             {
 
+                // get all the options to display
                 Dictionary<Int32, String> banksUsedOptions = GetOptionsForSearchCriterias(SearchCriteria.Banks);
                 Dictionary<Int32, String> banksServicesUsedOptions = GetOptionsForSearchCriterias(SearchCriteria.BankServices);
                 Dictionary<Int32, String> newspaperReadOptions = GetOptionsForSearchCriterias(SearchCriteria.Newspapers);
@@ -81,6 +83,7 @@ namespace AITR_Survey
 
                 SqlCommand sqlCommand = new SqlCommand("");
 
+                // generate dynamic query string based on which search criteria options is needed
                 if (criteria == SearchCriteria.Banks)
                 {
                     sqlCommand = new SqlCommand("SELECT MultipleChoiceOptionID, OptionText FROM MultipleChoiceOption WHERE QuestionID = " + AppConstants.QuestionIDForStaffSearchBank, conn);
@@ -155,6 +158,7 @@ namespace AITR_Survey
             List<Int32> selectedNewspaperOptions = new List<Int32>();
 
 
+            // get all the selected banks used
             foreach (ListItem item in banksUsedCheckBoxList.Items)
             {
                 if (item.Selected)
@@ -163,6 +167,7 @@ namespace AITR_Survey
                 }
             }
 
+            // get all the selected banks services
             foreach (ListItem item in bankServicesUsedCheckBoxList.Items)
             {
                 if (item.Selected)
@@ -171,6 +176,7 @@ namespace AITR_Survey
                 }
             }
 
+            // get all the selected newspapers
             foreach (ListItem item in newspaperReadCheckBoxList.Items)
             {
                 if (item.Selected)
@@ -181,12 +187,12 @@ namespace AITR_Survey
 
 
 
-            // Now we can use these selected options to search for respondents in the database
-
-           
+            // Now we can use these selected options to search for respondents in the database          
             if (!String.IsNullOrEmpty(firstName))
             {
+                //get all the respondents ID that matches the firstname
                 getRespondentIDFromName(firstName);
+                //if we don't find anything, then the list is empty display the message
                 if (respondentIDFromName.Count == 0)
                 {
                     headerLabel.Text = "No users found with the specified first name.";
@@ -198,7 +204,9 @@ namespace AITR_Survey
 
             if (selectedBankOptions.Count > 0)
             {
+                // get all the respondents ID which matches the all the list of selected banks 
                 getRespondentIDFromBanks(selectedBankOptions);
+                //if we don't find anything, then the list is empty display the message
                 if (respondentIDFromBanks.Count == 0)
                 {
                     headerLabel.Text = "No users found with the specified bank options.";
@@ -209,7 +217,9 @@ namespace AITR_Survey
 
             if (selectedBankServiceOptions.Count > 0)
             {
+                // get all the respondents ID which matches the all the list of selected banks services
                 getRespondentIDFromBankServices(selectedBankServiceOptions);
+                //if we don't find anything, then the list is empty display the message
                 if (respondentIDFromBankServices.Count == 0)
                 {
                     headerLabel.Text = "No users found with the specified bank service options.";
@@ -220,7 +230,9 @@ namespace AITR_Survey
 
             if (selectedNewspaperOptions.Count > 0)
             {
+                // get all the respondents ID which matches the all the list of selected newspaper 
                 getRespondentIDFromNewspaper(selectedNewspaperOptions);
+                //if we don't find anything, then the list is empty display the message
                 if (respondentIDFromNewspaper.Count == 0)
                 {
                     headerLabel.Text = "No users found with the specified newspaper options.";
@@ -229,28 +241,32 @@ namespace AITR_Survey
                 }
             }
 
-
+            // make sure the grid is visible if it was hidden in the beginning
             answerGridView.Visible = true;
+
+            //now, from the received respondent ID's from each of all the selected options, we look for the intersection between them to find repondent who answered all of them as requested
             var listOfLists = new List<List<int>>() { respondentIDFromBanks, respondentIDFromBankServices, respondentIDFromName, respondentIDFromNewspaper };
-            if(listOfLists.Count == 0)
+            if(listOfLists.Count == 0) // if the list is empty, no users were found
             {
                 headerLabel.Text = "No users found with the specified criteria.";
                 return;
             }
+            //actual intersection formulae
             List<Int32> intersection = listOfLists.Where(l => l.Any()).Aggregate<IEnumerable<int>>((previousList, nextList) => previousList.Intersect(nextList)).ToList();
 
+            // if there is no intersection, then there was no users with the matching information
             if(intersection.Count == 0)
             {
                 headerLabel.Text = "No users found with the specified criteria.";
                 return;
             }
-            headerLabel.Text = $"We have found {intersection.Count} number of users with matching data.";
-
+            headerLabel.Text = $"We have found {intersection.Count} user(s) with the matching criterias. Look at the table below for more information";
+            
             // Now we can display the results in a grid 
-
-
             try
             {
+
+                // now we initialise the datatable with all the columns
                 DataTable dt = new DataTable();
                 dt.Columns.Add("Respondent ID", typeof(String));
                 dt.Columns.Add("Date", typeof(String));
@@ -260,18 +276,19 @@ namespace AITR_Survey
                 dt.Columns.Add("DOB", typeof(String));
                 dt.Columns.Add("Registered?", typeof(String));
                 dt.Columns.Add("Answer ID", typeof(String));
-
                 dt.Columns.Add("Question ID", typeof(String));
                 dt.Columns.Add("Question Text", typeof(String));
                 dt.Columns.Add("MultipleChoice Answer ID", typeof(String));
                 dt.Columns.Add("Option Text", typeof(String));
                 dt.Columns.Add("TextInput Answer", typeof(String));
 
+                //get the connection string
                 SurveyQuestion surveyApp = new SurveyQuestion();
                 String connectionString = surveyApp.GetConnectionString();
                 SqlConnection conn = new SqlConnection(connectionString);
                 conn.Open();
 
+                // now we generate the dynamic query based on the selected id's and query the database
                 String idParams = String.Join(",", intersection.Select((x, i) => "@id" + i));
                 SqlCommand sqlCommand = new SqlCommand($"SELECT * FROM RespondentAnswerView WHERE RespondentID IN ({idParams})", conn);
 
@@ -282,9 +299,8 @@ namespace AITR_Survey
                 SqlDataReader reader = sqlCommand.ExecuteReader();
                 while (reader.Read())
                 {
+                    // as long as there are new data rows from the database, we add the row to the datatable
                     DataRow row = dt.NewRow();
-
-
                     row["Question Text"] = reader["QuestionText"] as String;
                     row["First Name"] = reader["Firstname"] as String == "" ? "N/A" : reader["Firstname"] as String;
                     row["Last Name"] = reader["Lastname"] as String == "" ? "N/A" : reader["Lastname"] as String;
@@ -297,6 +313,9 @@ namespace AITR_Survey
                     if (Int32.TryParse(reader["QuestionID"].ToString(), out questionID))
                     {
                         row["Question ID"] = questionID;
+
+                    }
+
                     Int32 multipleChoiceAnswerID = 0;
                     if (Int32.TryParse(reader["MultipleChoiceAnswerID"].ToString(), out multipleChoiceAnswerID))
                     {
@@ -306,6 +325,7 @@ namespace AITR_Survey
                     {
                         row["MultipleChoice Answer ID"] = "N/A";
                     }
+
                     Int32 respondentID = 0;
                     if (Int32.TryParse(reader["RespondentID"].ToString(), out respondentID))
                     {
@@ -315,6 +335,7 @@ namespace AITR_Survey
                     {
                         row["Respondent ID"] = "N/A";
                     }
+
                     DateTime date = new DateTime();
                     if (DateTime.TryParse(reader["Date"].ToString(), out date))
                     {
@@ -340,13 +361,12 @@ namespace AITR_Survey
                     {
                         row["Answer ID"] = answerID.ToString();
                     }
-                    dt.Rows.Add(row);
+                        dt.Rows.Add(row);
                 }
-                answerGridView.DataSource = dt;
-                answerGridView.DataBind();
-
+                //after we add all the returned data into the datatable, we need to bind it and display it to the grid view
+                    answerGridView.DataSource = dt;
+                    answerGridView.DataBind();
                 conn.Close();
-
             }
             catch (SqlException ex)
             {
@@ -371,17 +391,18 @@ namespace AITR_Survey
         /// <param name="firstName">The first name of the respondent to search for. Cannot be null or empty.</param>
         protected void getRespondentIDFromName(String firstName)
         {
-            //this method will get the respondent id from the name
-            //we will use this to search for the respondent in the database
             try
             {
+                //get the connection string
                 SurveyQuestion surveyApp = new SurveyQuestion();
                 String connectionString = surveyApp.GetConnectionString();
                 SqlConnection conn = new SqlConnection(connectionString);
                 conn.Open();
+                //query the database
                 SqlCommand sqlCommand = new SqlCommand("SELECT Distinct(RespondentID) FROM RespondentAnswerView WHERE Firstname = @FirstName", conn);
                 sqlCommand.Parameters.AddWithValue("@FirstName", firstName);
                 SqlDataReader reader = sqlCommand.ExecuteReader();
+                // as long as thee is data, add it to the list
                     while (reader.Read())
                     {
                         Int32 respondentID = convertStringToInt(reader["RespondentID"].ToString());
@@ -408,16 +429,16 @@ namespace AITR_Survey
         /// answer.</param>
         protected void getRespondentIDFromBanks(List<Int32> selectedBankOptions)
         {
-            //this method will get the respondent id from the banks
-            //we will use this to search for the respondent in the database
             try
             {
+                // get the connection string
                 SurveyQuestion surveyApp = new SurveyQuestion();
                 String connectionString = surveyApp.GetConnectionString();
                 SqlConnection conn = new SqlConnection(connectionString);
                 conn.Open();
                 String bankOptionsString = String.Join(",", selectedBankOptions.Select((x, i) => "@option" + i));
            
+                //generare the dynamic query based on all the selected options
                 String query = $"SELECT RespondentID FROM RespondentAnswerView WHERE QuestionID = 7 AND (MultipleChoiceAnswerID in ({bankOptionsString})) GROUP BY RespondentID HAVING COUNT(DISTINCT MultipleChoiceAnswerID) = {selectedBankOptions.Count}";
                 
                 SqlCommand sqlCommand = new SqlCommand(query, conn);
@@ -427,6 +448,7 @@ namespace AITR_Survey
                     sqlCommand.Parameters.AddWithValue("@option" + i, selectedBankOptions[i]);
                 }
 
+                //execute the reader and add it to the list as long as there is unique respondent id
                 SqlDataReader reader = sqlCommand.ExecuteReader();
                     while (reader.Read())
                     {
@@ -499,11 +521,13 @@ namespace AITR_Survey
         {
             try
             {
+                // get the connection string
                 SurveyQuestion surveyApp = new SurveyQuestion();
                 String connectionString = surveyApp.GetConnectionString();
                 SqlConnection conn = new SqlConnection(connectionString);
                 conn.Open();
 
+                //generate dynamic query based on selected options
                 String newspaperOptionsString = String.Join(",", selectedNewspaperOptions.Select((x, i) => "@option" + i));
                 String query = $"SELECT RespondentID FROM RespondentAnswerView WHERE QuestionID = 8 AND (MultipleChoiceAnswerID in ({newspaperOptionsString})) GROUP BY RespondentID HAVING COUNT(DISTINCT MultipleChoiceAnswerID) = {selectedNewspaperOptions.Count}";
 
@@ -514,6 +538,7 @@ namespace AITR_Survey
                     sqlCommand.Parameters.AddWithValue("@option" + i, selectedNewspaperOptions[i]);
                 }             
 
+                // execute the reader and add the data as long as there is unique respondent values in the database
                 SqlDataReader reader = sqlCommand.ExecuteReader();
                 while (reader.Read())
                 {

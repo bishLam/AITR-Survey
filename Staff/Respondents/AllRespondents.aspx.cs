@@ -14,8 +14,8 @@ namespace AITR_Survey.Staff.Respondents
     {
         protected void Page_Load(object sender, EventArgs e)
         {
-            var registeredRespondents = GetResgisteredRespondents();
-            var unregisteredRespondents = GetNonResgisteredRespondents();
+            var registeredRespondents = GetRegisteredRespondents();
+            var unregisteredRespondents = GetNonRegisteredRespondents();
             //DataTable dataTable = new DataTable();
             //dataTable.Columns.Add("Respondent ID", typeof(String));
             //dataTable.Columns.Add("Date Responded", typeof(String));
@@ -48,7 +48,12 @@ namespace AITR_Survey.Staff.Respondents
             unregisteredRespondentsGridView.DataBind();
         }
 
-        public List<Respondent> GetResgisteredRespondents()
+
+        /// <summary>
+        /// Queries the database and retrieves all the registered user
+        /// </summary>
+        /// <returns> A list of repondents who are registered as List<Respondent></returns>
+        public List<Respondent> GetRegisteredRespondents()
         {
             SurveyQuestion surveyApp = new SurveyQuestion();
             string _connectionString = surveyApp.GetConnectionString();
@@ -84,7 +89,11 @@ namespace AITR_Survey.Staff.Respondents
             return respondents;
         }
 
-        public List<Respondent> GetNonResgisteredRespondents()
+        /// <summary>
+        /// Queries the database and returns all the non registered respondents
+        /// </summary>
+        /// <returns>List of Respondent in List<Respondents></returns>
+        public List<Respondent> GetNonRegisteredRespondents()
         {
             SurveyQuestion surveyApp = new SurveyQuestion();
             string _connectionString = surveyApp.GetConnectionString();
@@ -118,6 +127,11 @@ namespace AITR_Survey.Staff.Respondents
             return respondents;
         }
 
+        /// <summary>
+        /// Tries to convert the provided into Integer and redirects user to the error screen with error information if there is any
+        /// </summary>
+        /// <param name="valueToConvert"></param>
+        /// <returns>returns the converted value in Int32 format if it is parsable, otherwise redirects to the error page</returns>
         public Int32 convertStringToInt(String valueToConvert)
         {
             Int32 valueToStore;

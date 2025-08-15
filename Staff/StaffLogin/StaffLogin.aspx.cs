@@ -39,7 +39,6 @@ namespace AITR_Survey
                 {
                     //valid credentials
                     Response.Redirect(AppConstants.redirectToStaffDashboard);
-
                 }
                 else
                 {

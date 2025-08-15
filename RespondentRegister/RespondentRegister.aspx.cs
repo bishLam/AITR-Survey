@@ -21,12 +21,13 @@ namespace AITR_Survey
             String enteredFirstName = firstNameTextBox.Text;
             String enteredLastName = lastNameTextBox.Text;
             String contactNumber = ContactNumberTextBox.Text;
-            DateTime DOB;
             DateTime Eighteen = DateTime.Now.Date.AddDays(-6573);
 
-            if (DateTime.TryParse(DOBDatePicker.Value, out DOB))
+            if (DateTime.TryParse(DOBDatePicker.Value, out DateTime DOB))
             {
                 // Valid date, use DOB
+
+                //check if the age is over 18 or not
                 if (Eighteen <= Convert.ToDateTime(DOB))
                 {
                     //this means the entered date is in future
@@ -38,15 +39,27 @@ namespace AITR_Survey
                     validatorPlaceholder.Controls.Add(validator);
                     return;
                 }
-                
             }
             else
             {
+                // this means the try parse failed which means that the date was not in correct format
                 CustomValidator validator = new CustomValidator();
                 validator.ControlToValidate = "DOBDatePicker";
                 validator.IsValid = false;
                 validator.Display = ValidatorDisplay.Dynamic;
                 validator.ErrorMessage = "Date is not in a correct format";
+                validatorPlaceholder.Controls.Add(validator);
+                return;
+            }
+
+            if (!validatePhoneNumber(contactNumber))
+            {
+                //this means the entered phone number is not 
+                CustomValidator validator = new CustomValidator();
+                validator.ControlToValidate = "ContactNumberTextBox";
+                validator.IsValid = false;
+                validator.Display = ValidatorDisplay.Dynamic;
+                validator.ErrorMessage = "Phone number is not correct";
                 validatorPlaceholder.Controls.Add(validator);
                 return;
             }
@@ -59,5 +72,22 @@ namespace AITR_Survey
             HttpContext.Current.Session["respondentDOB"] = DOB.ToString();
             Response.Redirect(AppConstants.redirectToAnswerConfirmation);
         }
+
+
+        /// <summary>
+        ///     Validated the phone number entered by the user
+        /// </summary>
+        /// <param name="phoneNumber"></param>
+        /// <returns>returns if the provided phone numbemr is a valid australian number. If valid, returns true otherwise false</returns>
+        protected bool validatePhoneNumber(String phoneNumber)
+        {
+            System.Text.RegularExpressions.Regex numberRegex = new System.Text.RegularExpressions.Regex(AppConstants.ContactNumberValidatorRegex);
+            if (numberRegex.IsMatch(phoneNumber))
+            {
+                return true;
+            }
+            return false;
+        }
     }
+
 }

@@ -18,6 +18,7 @@ namespace AITR_Survey
         public static String QuestionTypeFinish = "Finish";
 
         public static String EmailValidatorRegex = "^([\\w\\.\\-]+)@([\\w\\-]+)((\\.(\\w){2,3})+)$";
+        public static String ContactNumberValidatorRegex = "^(?:\\+?(61))? ?(?:\\((?=.*\\)))?(0?[2-57-8])\\)? ?(\\d\\d(?:[- ](?=\\d{3})|(?!\\d\\d[- ]?\\d[- ]))\\d\\d[- ]?\\d[- ]?\\d{3})$";
 
         //links to redirect users between pages
         public static String redirectToHome = "~/DefaultPage/Default.aspx";

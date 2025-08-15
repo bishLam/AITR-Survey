@@ -20,13 +20,9 @@ namespace AITR_Survey.Error
             errorDetailsLabel.Text = errorMessage;
         }
 
-
         protected void GoHomeButton_Click(object sender, EventArgs e)
         {
             Response.Redirect(AppConstants.redirectToHome);
-
-
-
 
             //Script used to insert postal address data into the database
             // Your MySQL connection string
@@ -53,7 +49,6 @@ namespace AITR_Survey.Error
             //                    isFirstLine = false; // skip header
             //                    continue;
             //                }
-
             //                var values = line.Split(',');
 
             //                if (values.Length == 3)

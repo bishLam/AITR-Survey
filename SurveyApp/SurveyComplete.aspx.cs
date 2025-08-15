@@ -16,6 +16,7 @@ namespace AITR_Survey.SurveyApp
 
         protected void btnBackToHome_Click(object sender, EventArgs e)
         {
+            // once the survey is completed, redirect them to the home page
             Response.Redirect("~/DefaultPage/Default.aspx");
         }
     }

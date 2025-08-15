@@ -83,12 +83,9 @@ namespace AITR_Survey
                         return;
                     }
 
-                   
-                    Int32 selectedOptionID;
-                    if(!Int32.TryParse(rbl.SelectedItem.Value, out selectedOptionID)) return;
-
-                    Int32 questionID;
-                    if (!Int32.TryParse(HttpContext.Current.Session["currentQuestionID"] as String, out questionID)) return;
+                    //get the selected option id and current question id and convert it into integer 
+                    Int32 selectedOptionID = convertStringToInt(rbl.SelectedItem.Value);
+                    Int32 questionID = convertStringToInt(HttpContext.Current.Session["currentQuestionID"] as String);
 
                     // we will initialise the Answer object to store this answer and questions so that we can store this in the session to later push it in the database
                     Answer answer = new Answer();
@@ -933,7 +930,7 @@ namespace AITR_Survey
                 //CustomValidator validator = new CustomValidator();
                 //validator.ID = "validator";
                 //validator.Display = ValidatorDisplay.Dynamic;
-                ////validator.ErrorMessage = "Please select at least one option";
+                //validator.ErrorMessage = "Please select at least one option";
                 //validator.ServerValidate += new ServerValidateEventHandler(ValidateCheckboxList);
 
                 //answerPlaceholder.Controls.Add(validator);
@@ -1398,6 +1395,11 @@ namespace AITR_Survey
 
         }
 
+        /// <summary>
+        /// Tries to convert the provided into Integer and redirects user to the error screen with error information if there is any
+        /// </summary>
+        /// <param name="valueToConvert"> value in the string which is to be converted</param>
+        /// <returns>returns the converted value in Int32 format if it is parsable, otherwise redirects to the error page</returns>
         protected Int32 convertStringToInt(String valueToConvert)
         {
             Int32 valueToStore;
