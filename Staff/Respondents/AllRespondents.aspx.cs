@@ -50,9 +50,15 @@ namespace AITR_Survey.Staff.Respondents
 
 
         /// <summary>
-        /// Queries the database and retrieves all the registered user
+        /// Queries the database and retrieves all respondents who are registered.
         /// </summary>
-        /// <returns> A list of repondents who are registered as List<Respondent></returns>
+        /// <remarks>
+        /// This method connects to the database using the connection string from the SurveyQuestion class,
+        /// executes a query to select all records from the Respondent table, and filters the results to include
+        /// only those respondents where the "isRegistered" field is "1". It constructs a list of Respondent
+        /// objects for each registered respondent and returns this list.
+        /// </remarks>
+        /// <returns>A list of Respondent objects representing registered respondents.</returns>
         public List<Respondent> GetRegisteredRespondents()
         {
             SurveyQuestion surveyApp = new SurveyQuestion();
@@ -90,9 +96,15 @@ namespace AITR_Survey.Staff.Respondents
         }
 
         /// <summary>
-        /// Queries the database and returns all the non registered respondents
+        /// Queries the database and retrieves all respondents who are not registered.
         /// </summary>
-        /// <returns>List of Respondent in List<Respondents></returns>
+        /// <remarks>
+        /// This method connects to the database using the connection string from the SurveyQuestion class,
+        /// executes a query to select all records from the Respondent table, and filters the results to include
+        /// only those respondents where the "isRegistered" field is "0". It constructs a list of Respondent
+        /// objects for each unregistered respondent and returns this list.
+        /// </remarks>
+        /// <returns>A list of Respondent objects representing unregistered respondents.</returns>
         public List<Respondent> GetNonRegisteredRespondents()
         {
             SurveyQuestion surveyApp = new SurveyQuestion();
