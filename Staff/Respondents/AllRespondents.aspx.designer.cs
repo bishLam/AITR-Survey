@@ -40,5 +40,23 @@ namespace AITR_Survey.Staff.Respondents
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView unregisteredRespondentsGridView;
+
+        /// <summary>
+        /// respondentInfoLabel control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label respondentInfoLabel;
+
+        /// <summary>
+        /// respondentDetailsGridView control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.GridView respondentDetailsGridView;
     }
 }

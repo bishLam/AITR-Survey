@@ -241,6 +241,13 @@ namespace AITR_Survey
                 }
             }
 
+            // if the first name is empty and no options were selected, then we don't need to do anything
+            if (String.IsNullOrEmpty(firstName) && selectedBankOptions.Count == 0 && selectedBankServiceOptions.Count == 0 && selectedNewspaperOptions.Count == 0)
+            {
+                headerLabel.Text = "Please enter at least one search criteria. Or visit all respondents page if you want to view all respondents.";
+                return;
+            }
+
             // make sure the grid is visible if it was hidden in the beginning
             answerGridView.Visible = true;
 
@@ -307,7 +314,7 @@ namespace AITR_Survey
                     row["Contact Number"] = reader["ContactNumber"] as String == "" ? "N/A" : reader["ContactNumber"] as String;
                     row["Option Text"] = reader["OptionText"] as String == "" ? "N/A" : reader["OptionText"] as String;
                     row["TextInput Answer"] = reader["TextInputAnswer"] as String == "" ? "N/A" : reader["TextInputAnswer"] as String;
-                    row["Registered?"] = reader["isRegistered"] as String == "" ? "N/A" : reader["isRegistered"] as String;
+                    row["Registered?"] = reader["isRegistered"] as String == "0" ? "No" : "Yes";
 
                     Int32 questionID = 0;
                     if (Int32.TryParse(reader["QuestionID"].ToString(), out questionID))

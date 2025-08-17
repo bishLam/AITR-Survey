@@ -41,7 +41,7 @@ namespace AITR_Survey
             if (!IsPostBack) //this is the first time the page is loaded
             {
                 LoadFirstQuestion();
-                previousButton.Visible = false; //hide the previous button initially
+                //previousButton.Visible = false; //hide the previous button initially
             }
             else
             {
@@ -324,8 +324,8 @@ namespace AITR_Survey
                     if(!Int32.TryParse(tbxText, out temp))
                     {
                         CustomValidator validator = new CustomValidator();
-                        validator.ID = "SuburbValidator";
-                        validator.ErrorMessage = "Suburb should be numbers";
+                        validator.ID = "PostcodeValidator";
+                        validator.ErrorMessage = "Postcode should be numbers";
                         validator.IsValid = false;
                         answerPlaceholder.Controls.Add(validator);
                         return;
@@ -334,8 +334,8 @@ namespace AITR_Survey
                     if (!validatePostcode(temp))
                     {
                         CustomValidator validator = new CustomValidator();
-                        validator.ID = "SuburbValidator";
-                        validator.ErrorMessage = "Suburb is not valid";
+                        validator.ID = "PostcodeValidator";
+                        validator.ErrorMessage = "Postcode is not valid";
                         validator.IsValid = false;
                         answerPlaceholder.Controls.Add(validator);
                         return;
@@ -591,7 +591,7 @@ namespace AITR_Survey
         {
             Question question = GetQuestionFromQuestionID(questionID);
             //now store the current value in the session and prompt them with the next question
-            previousButton.Visible = true; //make the previous button visible
+            //previousButton.Visible = true; //make the previous button visible
             Int32 currentQuestionID = question.QuestionID; //set the current question ID to the next question ID
 
             if (questionID == 10)

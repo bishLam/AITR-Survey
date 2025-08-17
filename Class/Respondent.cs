@@ -32,6 +32,18 @@ namespace AITR_Survey.Class
             this.isRegistered = isRegistered;
         }
 
+        //constructor for unregistered respondents where first name, last name, DOB and contact number are empty
+        public Respondent(int respondentID, DateTime dateResponded, string iPAddress, bool isRegistered)
+        {
+            this.firstName = "Anonymous";
+            this.lastName = "Anonymous";
+            this.contactNumber = "Anonymous";
+            this.respondentID = respondentID;
+            this.dateResponded = dateResponded;
+            this.iPAddress = iPAddress;
+            this.isRegistered = isRegistered;
+        }
+
         public string FirstName { get => firstName; set => firstName = value; }
         public string LastName { get => lastName; set => lastName = value; }
         public string ContactNumber { get => contactNumber; set => contactNumber = value; }

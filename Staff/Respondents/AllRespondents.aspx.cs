@@ -46,6 +46,52 @@ namespace AITR_Survey.Staff.Respondents
 
             unregisteredRespondentsGridView.DataSource = unregisteredRespondents;
             unregisteredRespondentsGridView.DataBind();
+
+            respondentInfoLabel.Visible = false;
+
+
+
+            // if the user clicks on the specific respondent, it will display the respondent details with questions and answers they answered
+
+        }
+
+        //hide the first 3 columns of the unregistered respondents grid view when the page load is comple
+        //protected void unregisteredRespondentsGridView_RowDataBound(object sender, GridViewRowEventArgs e)
+        //{
+        //    // Hide the first 3 columns of the unregistered respondents grid view
+        //    e.Row.Cells[1].Visible = false;
+        //    e.Row.Cells[2].Visible = false;
+        //    e.Row.Cells[3].Visible = false;
+        //}
+
+        protected void registeredRespondentsGridView_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Get the selected row
+            GridViewRow selectedRow = registeredRespondentsGridView.SelectedRow;
+            // Get the RespondentID from the firth cell of the selected row
+
+
+            int respondentID = convertStringToInt(selectedRow.Cells[5].Text);           
+            //show the details label and gridview with data
+            respondentInfoLabel.Visible = true;
+            respondentInfoLabel.Text = "Survey details for the selected respondents with ID " + respondentID + " are as below: ";
+            DisplayRespondentInfoFromRespondentID(respondentID);
+
+        }
+
+        protected void unregisteredRespondentsGridView_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Get the selected row
+            GridViewRow selectedRow = unregisteredRespondentsGridView.SelectedRow;
+            // Get the RespondentID from the firth cell of the selected row
+
+
+            int respondentID = convertStringToInt(selectedRow.Cells[5].Text);
+            //show the details label and gridview with data
+            respondentInfoLabel.Visible = true;
+            respondentInfoLabel.Text = "Survey details for the selected respondents with ID " + respondentID + " are as below: ";
+            DisplayRespondentInfoFromRespondentID(respondentID);
+
         }
 
 
@@ -61,35 +107,44 @@ namespace AITR_Survey.Staff.Respondents
         /// <returns>A list of Respondent objects representing registered respondents.</returns>
         public List<Respondent> GetRegisteredRespondents()
         {
+
+
             SurveyQuestion surveyApp = new SurveyQuestion();
             string _connectionString = surveyApp.GetConnectionString();
             
             List<Respondent> respondents = new List<Respondent>();
             SqlConnection conn = new SqlConnection();
             conn.ConnectionString = _connectionString;
-            conn.Open();
-
-            SqlCommand sqlCommand = new SqlCommand("SELECT * FROM Respondent", conn);
-            SqlDataReader reader = sqlCommand.ExecuteReader();
-
-            while (reader.Read())
+            try
             {
-                if (reader["isRegistered"].ToString() == "1")
+                conn.Open();
+
+                SqlCommand sqlCommand = new SqlCommand("SELECT * FROM Respondent", conn);
+                SqlDataReader reader = sqlCommand.ExecuteReader();
+
+                while (reader.Read())
                 {
-                    Respondent respondent = new Respondent();
-                    respondent.RespondentID = convertStringToInt(reader["RespondentID"].ToString());
-                    String dateResponded = reader["Date"].ToString();
-                    respondent.DateResponded = DateTime.Parse(dateResponded);
-                    respondent.IPAddress = reader["IPAddress"].ToString();
-                    respondent.FirstName = reader["Firstname"].ToString();
-                    respondent.LastName = reader["Lastname"].ToString();
-                    respondent.ContactNumber = reader["ContactNumber"].ToString();
-                    respondent.DOB = DateTime.Parse(reader["DOB"].ToString());
-                    respondent.IsRegistered = reader["isRegistered"].ToString() == "1" ? true : false;
+                    if (reader["isRegistered"].ToString() == "1")
+                    {
+                        Respondent respondent = new Respondent();
+                        respondent.RespondentID = convertStringToInt(reader["RespondentID"].ToString());
+                        String dateResponded = reader["Date"].ToString();
+                        respondent.DateResponded = DateTime.Parse(dateResponded);
+                        respondent.IPAddress = reader["IPAddress"].ToString();
+                        respondent.FirstName = reader["Firstname"].ToString();
+                        respondent.LastName = reader["Lastname"].ToString();
+                        respondent.ContactNumber = reader["ContactNumber"].ToString();
+                        respondent.DOB = DateTime.Parse(reader["DOB"].ToString());
+                        respondent.IsRegistered = reader["isRegistered"].ToString() == "1" ? true : false;
 
-                    respondents.Add(respondent);
+                        respondents.Add(respondent);
+                    }
                 }
+            }
 
+            catch(Exception ex)
+            {
+                Response.Write("Exception occured." + ex.Message);
             }
             conn.Close();
             return respondents;
@@ -113,27 +168,39 @@ namespace AITR_Survey.Staff.Respondents
             List<Respondent> respondents = new List<Respondent>();
             SqlConnection conn = new SqlConnection();
             conn.ConnectionString = _connectionString;
-            conn.Open();
-
-            SqlCommand sqlCommand = new SqlCommand("SELECT * FROM Respondent", conn);
-            SqlDataReader reader = sqlCommand.ExecuteReader();
-
-            while (reader.Read())
+            try
             {
-                if (reader["isRegistered"].ToString() == "0")
-                {
-                    Respondent respondent = new Respondent();
-                    respondent.RespondentID = convertStringToInt(reader["RespondentID"].ToString());
-                    String dateResponded = reader["Date"].ToString();
-                    respondent.DateResponded = DateTime.Parse(dateResponded);
-                    respondent.IPAddress = reader["IPAddress"].ToString();
-                    respondent.FirstName = reader["Firstname"].ToString();
-                    respondent.LastName = reader["Lastname"].ToString();
-                    respondent.ContactNumber = reader["ContactNumber"].ToString();
-                    respondent.IsRegistered = reader["isRegistered"].ToString() == "1" ? true : false;
-                    respondents.Add(respondent);
-                }
+                conn.Open();
 
+                SqlCommand sqlCommand = new SqlCommand("SELECT * FROM Respondent", conn);
+                SqlDataReader reader = sqlCommand.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    if (reader["isRegistered"].ToString() == "0")
+                    {
+                        Respondent respondent = new Respondent();
+                        respondent.RespondentID = convertStringToInt(reader["RespondentID"].ToString());
+                        String dateResponded = reader["Date"].ToString();
+                        DateTime dateRespondentConverted;
+                        if (DateTime.TryParse(dateResponded, out dateRespondentConverted))
+                        {
+                            respondent.DateResponded = dateRespondentConverted;
+                        }
+
+                        respondent.IPAddress = reader["IPAddress"].ToString();
+                        respondent.FirstName = "Anonymous";
+                        respondent.LastName = "Anonymous";
+                        respondent.ContactNumber = "Anonymous";
+                        respondent.IsRegistered = reader["isRegistered"].ToString() == "1" ? true : false;
+                        respondents.Add(respondent);
+                    }
+
+                }
+            }
+            catch(Exception ex)
+            {
+                Response.Write("Exception occured." + ex.Message);
             }
             conn.Close();
             return respondents;
@@ -156,6 +223,125 @@ namespace AITR_Survey.Staff.Respondents
                 HttpContext.Current.Session["ErrorMessage"] = "String could not be converted to integer. Please try again. Provided String: " + valueToConvert;
                 Response.Redirect(AppConstants.redirectToErrorPage);
                 return 0;
+            }
+        }
+
+        /// <summary>
+        /// Displays detailed information about a respondent based on the provided respondent ID.
+        /// </summary>
+        /// <remarks>This method retrieves respondent details, including personal information,
+        /// registration status, and answers to survey questions,  from the database and binds the data to a grid view
+        /// for display. The data is fetched from the "RespondentAnswerView" database view.</remarks>
+        /// <param name="resID">The unique identifier of the respondent whose information is to be displayed. Must be a valid integer.</param>
+        protected void DisplayRespondentInfoFromRespondentID(Int32 resID)
+        {
+            try
+            {
+
+                // now we initialise the datatable with all the columns
+                DataTable dt = new DataTable();
+                dt.Columns.Add("Respondent ID", typeof(String));
+                dt.Columns.Add("Date", typeof(String));
+                dt.Columns.Add("First Name", typeof(String));
+                dt.Columns.Add("Last Name", typeof(String));
+                dt.Columns.Add("Contact Number", typeof(String));
+                dt.Columns.Add("DOB", typeof(String));
+                dt.Columns.Add("Registered?", typeof(String));
+                dt.Columns.Add("Answer ID", typeof(String));
+                dt.Columns.Add("Question ID", typeof(String));
+                dt.Columns.Add("Question Text", typeof(String));
+                dt.Columns.Add("MultipleChoice Answer ID", typeof(String));
+                dt.Columns.Add("Option Text", typeof(String));
+                dt.Columns.Add("TextInput Answer", typeof(String));
+
+                //get the connection string
+                SurveyQuestion surveyApp = new SurveyQuestion();
+                String connectionString = surveyApp.GetConnectionString();
+                SqlConnection conn = new SqlConnection(connectionString);
+                conn.Open();
+
+                // now we generate the dynamic query based on the selected id's and query the database
+                SqlCommand sqlCommand = new SqlCommand($"SELECT * FROM RespondentAnswerView WHERE RespondentID = @resID", conn);
+                sqlCommand.Parameters.AddWithValue("@resID", resID);
+                SqlDataReader reader = sqlCommand.ExecuteReader();
+                while (reader.Read())
+                {
+                    // as long as there are new data rows from the database, we add the row to the datatable
+                    DataRow row = dt.NewRow();
+                    row["Question Text"] = reader["QuestionText"] as String;
+                    row["First Name"] = reader["Firstname"] as String == "" ? "N/A" : reader["Firstname"] as String;
+                    row["Last Name"] = reader["Lastname"] as String == "" ? "N/A" : reader["Lastname"] as String;
+                    row["Contact Number"] = reader["ContactNumber"] as String == "" ? "N/A" : reader["ContactNumber"] as String;
+                    row["Option Text"] = reader["OptionText"] as String == "" ? "N/A" : reader["OptionText"] as String;
+                    row["TextInput Answer"] = reader["TextInputAnswer"] as String == "" ? "N/A" : reader["TextInputAnswer"] as String;
+                    row["Registered?"] = reader["isRegistered"] as String == "" ? "N/A" : reader["isRegistered"] as String;
+
+                    Int32 questionID = 0;
+                    if (Int32.TryParse(reader["QuestionID"].ToString(), out questionID))
+                    {
+                        row["Question ID"] = questionID;
+
+                    }
+
+                    Int32 multipleChoiceAnswerID = 0;
+                    if (Int32.TryParse(reader["MultipleChoiceAnswerID"].ToString(), out multipleChoiceAnswerID))
+                    {
+                        row["MultipleChoice Answer ID"] = multipleChoiceAnswerID;
+                    }
+                    else
+                    {
+                        row["MultipleChoice Answer ID"] = "N/A";
+                    }
+
+                    Int32 respondentID = 0;
+                    if (Int32.TryParse(reader["RespondentID"].ToString(), out respondentID))
+                    {
+                        row["Respondent ID"] = respondentID.ToString();
+                    }
+                    else
+                    {
+                        row["Respondent ID"] = "N/A";
+                    }
+
+                    DateTime date = new DateTime();
+                    if (DateTime.TryParse(reader["Date"].ToString(), out date))
+                    {
+                        row["Date"] = date.ToString();
+                    }
+                    else
+                    {
+                        row["Date"] = "N/A";
+                    }
+
+                    DateTime DOB = new DateTime();
+                    if (DateTime.TryParse(reader["DOB"].ToString(), out DOB))
+                    {
+                        row["DOB"] = DOB.ToString();
+                    }
+                    else
+                    {
+                        row["DOB"] = "N/A";
+                    }
+
+                    Int32 answerID = 0;
+                    if (Int32.TryParse(reader["AnswerID"].ToString(), out answerID))
+                    {
+                        row["Answer ID"] = answerID.ToString();
+                    }
+                    dt.Rows.Add(row);
+                }
+                //after we add all the returned data into the datatable, we need to bind it and display it to the grid view
+                respondentDetailsGridView.DataSource = dt;
+                respondentDetailsGridView.DataBind();
+                conn.Close();
+            }
+            catch (SqlException ex)
+            {
+                Response.Write("SqlException exception found. Error: " + ex.ToString());
+            }
+            catch (Exception ex)
+            {
+                Response.Write("Exception found. Error: " + ex.ToString());
             }
         }
     }

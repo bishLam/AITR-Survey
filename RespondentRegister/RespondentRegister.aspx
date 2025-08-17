@@ -27,7 +27,7 @@
             <br />
             <div class="inputContainer">
                 <asp:Label ID="contactNumberLabel" runat="server" Text="Contact Number"></asp:Label>
-                <asp:TextBox class="inputTextBox" ID="ContactNumberTextBox" runat="server"></asp:TextBox>
+                <asp:TextBox TextMode="Number"  AutoCompleteType="HomePhone" class="inputTextBox" ID="ContactNumberTextBox" runat="server"></asp:TextBox>
                 <asp:RequiredFieldValidator Display="Dynamic" ControlToValidate="ContactNumberTextBox" ID="RequiredFieldValidator3" runat="server" ErrorMessage="Contact Number is required"></asp:RequiredFieldValidator>
             </div>
             <br />

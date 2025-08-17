@@ -17,7 +17,6 @@
         <!--Placeholder here to display different types of answer selection options like radio button, multiple choice. text input -->
         <asp:PlaceHolder ID="answerPlaceholder" runat="server"></asp:PlaceHolder>
         <br />
-        <asp:Button ID="previousButton" runat="server" Text="Previous Question" />
         <asp:Button class="nextQuestionButton" ID="nextButton" runat="server" Text="Next Question" OnClick="nextButton_Click" />
 
         <asp:Button ID="skipQuestionButton" runat="server" Text="Skip Question" OnClick="skipQuestionButton_Click" />
